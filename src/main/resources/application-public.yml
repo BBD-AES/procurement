@@ -1,6 +1,6 @@
 spring:
   application:
-    name: item
+    name: procurement
 
   threads:
     virtual:
@@ -28,6 +28,8 @@ springdoc:
   swagger-ui:
     tags-sorter: alpha
     operations-sorter: alpha
+    url: /procurement/v3/api-docs
+    config-url: /procurement/v3/api-docs/swagger-config
 
 
 

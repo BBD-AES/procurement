@@ -7,11 +7,8 @@ import org.springframework.http.HttpStatus;
 public class ApiException extends RuntimeException {
 
     private final HttpStatus httpStatus;
-
     private final String status;
-
     private final String code;
-
     private final String message;
 
     /**
@@ -25,4 +22,25 @@ public class ApiException extends RuntimeException {
         this.message = message;
     }
 
+    /**
+     * Error 기반 권장 생성자
+     */
+    public ApiException(ErrorCode errorCode) {
+        super(errorCode.getMessage());
+        this.httpStatus = errorCode.getHttpStatus();
+        this.status = String.valueOf(errorCode.getHttpStatus().value());
+        this.code = errorCode.getCode();
+        this.message = errorCode.getMessage();
+    }
+
+    /**
+     * Error code + 커스텀 메세지
+     */
+    public ApiException(ErrorCode errorCode, String message) {
+        super(message);
+        this.httpStatus = errorCode.getHttpStatus();
+        this.status = String.valueOf(errorCode.getHttpStatus().value());
+        this.code = errorCode.getCode();
+        this.message = errorCode.getMessage();
+    }
 }

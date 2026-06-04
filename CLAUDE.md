@@ -12,12 +12,12 @@
 
 - 사용자: 발주처(본사) 직원
 - Procurement가 직접 책임지는 것:
-    - 공급사(Vendor) 정보 관리 — 코드, 이름, 연락처, 거래 조건, 활성 여부
-    - 구매 주문(PO) 작성 · 확정 · 취소
-    - 입고 처리 및 재고 반영 (Inventory 호출)
-    - 구매 단가의 **거래 시점 스냅샷** 보존
-    - 안전재고 미달 시 PO 자동 생성
-    - Sales 도메인으로부터 발주 요청 수신
+  - 공급사(Vendor) 정보 관리 — 코드, 이름, 연락처, 거래 조건, 활성 여부
+  - 구매 주문(PO) 작성 · 확정 · 취소
+  - 입고 처리 및 재고 반영 (Inventory 호출)
+  - 구매 단가의 **거래 시점 스냅샷** 보존
+  - 안전재고 미달 시 PO 자동 생성
+  - Sales 도메인으로부터 발주 요청 수신
 
 ---
 
@@ -129,20 +129,55 @@ DRAFT ──확정──> CONFIRMED ──입고──> RECEIVED
 
 ---
 
-## 7. 기술 스택 / 컨벤션
+## 7. API 명세
 
-- Language / Framework: Java + Spring Boot (버전 ⚠️ 미확정)
+> Base path: `/api/v1` · 전 엔드포인트 **명세 완료 / 구현 예정** 상태 (담당: Dayoung)
+> 경로 변수는 `{poNumber}`로 통일. (스프레드시트의 `{poNumbers}`는 오타로 보고 정정함 — ⚠️ 확인 필요)
+
+### Vendor (공급사)
+
+| 메서드 | 엔드포인트 | 설명 | 권한 |
+|---|---|---|---|
+| POST | `/api/v1/vendors` | 공급사 등록 | HQ_MANAGER |
+| PATCH | `/api/v1/vendors/{code}` | 공급사 수정 | HQ_MANAGER |
+| PATCH | `/api/v1/vendors/{code}/active` | 공급사 활성/비활성 전환 | HQ_MANAGER |
+| GET | `/api/v1/vendors/{code}` | 공급사 상세 조회 | HQ_MANAGER, HQ_STAFF |
+| GET | `/api/v1/vendors` | 공급사 목록 조회 | HQ_MANAGER, HQ_STAFF |
+
+### PurchaseOrder (PO)
+
+| 메서드 | 엔드포인트 | 설명 | 권한 |
+|---|---|---|---|
+| POST | `/api/v1/purchase-orders` | PO 작성 | HQ_MANAGER, HQ_STAFF |
+| PATCH | `/api/v1/purchase-orders/{poNumber}` | PO 헤더 수정 | HQ_MANAGER, HQ_STAFF |
+| PUT | `/api/v1/purchase-orders/{poNumber}/lines` | PO 라인 수정 | HQ_MANAGER, HQ_STAFF |
+| POST | `/api/v1/purchase-orders/{poNumber}/confirm` | PO 확정 (DRAFT → CONFIRMED) | HQ_MANAGER |
+| POST | `/api/v1/purchase-orders/{poNumber}/receive` | 입고 처리 (CONFIRMED → RECEIVED) | HQ_MANAGER |
+| POST | `/api/v1/purchase-orders/{poNumber}/cancel` | PO 취소 (→ CANCELED) | status에 따라 다름 ⚠️ |
+| GET | `/api/v1/purchase-orders/{poNumber}` | PO 상세 조회 | HQ_MANAGER, HQ_STAFF |
+| GET | `/api/v1/purchase-orders` | PO 목록 조회 | HQ_MANAGER, HQ_STAFF |
+
+**API ↔ 규칙 연결 메모**
+- `PATCH .../{poNumber}` · `PUT .../{poNumber}/lines` (수정 계열)는 **DRAFT 상태에서만** 허용 (§4). 다른 상태면 예외.
+- `confirm` / `receive` / `cancel`은 직접 status를 바꾸는 게 아니라 **도메인 객체의 전이 메서드**를 호출하는 형태로 구현 (§4 규칙).
+- `cancel`의 "status에 따라 다름" = HQ_STAFF는 매니저 승인 필요(§6), 그리고 RECEIVED는 취소 불가(§4). 구체적인 승인 흐름은 ⚠️ 확인 필요.
+
+---
+
+## 8. 기술 스택 / 컨벤션
+
+- Language / Framework: Java 21 + Spring Boot 4.0.6
 - Build: **Gradle**
 - DB: **PostgreSQL** (Procurement 전용)
 - Inventory/Item 호출: **Spring Cloud OpenFeign (동기)**
-- 아키텍처 스타일: ⚠️ 레이어드 / 헥사고날 등 팀 컨벤션 확정 필요
+- 아키텍처 스타일: 도메인별 패키징 -> 후에 헥사고날 아키텍처 도입 예상
 - 인증: ⚠️ Gateway에서 JWT 검증 후 헤더 전달? 서비스에서 재검증?
 
 > 위 항목 확정 전까지 Claude는 스택 관련 코드를 임의로 생성하지 말고 먼저 물어볼 것.
 
 ---
 
-## 8. 빌드 / 실행 / 테스트 명령
+## 9. 빌드 / 실행 / 테스트 명령
 
 ```bash
 ./gradlew build       # 빌드
@@ -152,7 +187,7 @@ DRAFT ──확정──> CONFIRMED ──입고──> RECEIVED
 
 ---
 
-## 9. 작업 시 주의사항 (Claude에게 주는 규칙)
+## 10. 작업 시 주의사항 (Claude에게 주는 규칙)
 
 - 상태 전이 로직은 **반드시 도메인 객체 내부**에 둔다. 서비스 레이어에서 상태를 직접 바꾸지 않는다.
 - PO 라인의 부품명·단가는 **항상 스냅샷**으로 저장한다. Item을 런타임에 join하지 않는다.

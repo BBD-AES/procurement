@@ -38,12 +38,13 @@ public class Vendor extends BaseTimeEntity {
         this.name = name;
         this.contact = contact;
         this.terms = terms;
+        this.active = true;
     }
 
-    // 신규 공급사 생성, code는 VendorCodeGenerator에서 채번된 값 주입
+    // 신규 공급사 생성, code는 VendorCodeGeneratorPort 구현체가 채번한 값 주입
     public static Vendor create(String code, String name, String contact, String terms) {
         validateCode(code);
-        validateCode(code);
+        validateName(name);
         return new Vendor(code, name, contact, terms);
     }
 

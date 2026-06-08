@@ -1,5 +1,7 @@
 package com.bbd.procurement.vendor.adapter.in.web;
 
+import com.bbd.procurement.global.auth.HasRole;
+import com.bbd.procurement.global.auth.Role;
 import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.vendor.adapter.in.web.request.ChangeVendorActivationRequest;
 import com.bbd.procurement.vendor.adapter.in.web.request.RegisterVendorRequest;
@@ -28,6 +30,7 @@ public class VendorController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @HasRole({Role.HQ_MANAGER})
     public ApiResponse<VendorResponse> register(
             @Valid @RequestBody RegisterVendorRequest request
     ) {
@@ -36,6 +39,7 @@ public class VendorController {
     }
 
     @PatchMapping("/{code}")
+    @HasRole({Role.HQ_MANAGER})
     public ApiResponse<VendorResponse> update(
             @PathVariable String code,
             @Valid @RequestBody UpdateVendorRequest request
@@ -45,6 +49,7 @@ public class VendorController {
     }
 
     @PatchMapping("/{code}/active")
+    @HasRole({Role.HQ_MANAGER})
     public ApiResponse<VendorResponse> changeActivation(
             @PathVariable String code,
             @Valid @RequestBody ChangeVendorActivationRequest request
@@ -54,12 +59,14 @@ public class VendorController {
     }
 
     @GetMapping("/{code}")
+    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<VendorResponse> get(@PathVariable String code) {
         Vendor vendor = getVendorQuery.getByCode(code);
         return ApiResponse.success(VendorResponse.from(vendor));
     }
 
     @GetMapping
+    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<List<VendorSummaryResponse>> list() {
         List<VendorSummaryResponse> result = listVendorQuery.list().stream()
                 .map(VendorSummaryResponse::from)

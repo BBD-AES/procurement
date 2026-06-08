@@ -1,8 +1,7 @@
 package com.bbd.procurement.global.error;
 
 
-import com.bbd.procurement.global.error.dto.ErrorResponse;
-import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -22,12 +21,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(ApiException.class)
-    public ResponseEntity<ErrorResponse> handleApiException(ApiException e, HttpServletRequest req) {
-
-        ErrorResponse errorResponse = new ErrorResponse(e.getStatus(), e.getCode(), e.getMessage());
-
-        return ResponseEntity.status(e.getHttpStatus()).body(errorResponse);
-
+    public ResponseEntity<ProblemDetail> handleApiException(ApiException e) {
+        return ResponseEntity.status(e.getStatusCode()).body(e.getBody());
     }
 
 }

@@ -26,6 +26,7 @@ dependencies {
 	implementation 'org.flywaydb:flyway-core'
 	// flyway가 Postgres와 소통할 수 있게 도움을 주는 라이브러리
 	implementation 'org.flywaydb:flyway-database-postgresql'
+	implementation 'org.springframework.boot:spring-boot-flyway'
 	compileOnly 'org.projectlombok:lombok'
 	runtimeOnly 'org.postgresql:postgresql'
 	annotationProcessor 'org.projectlombok:lombok'

@@ -1,46 +1,35 @@
 package com.bbd.procurement.global.error;
 
 import lombok.Getter;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.ErrorResponseException;
+
+import java.time.OffsetDateTime;
 
 @Getter
-public class ApiException extends RuntimeException {
+public class ApiException extends ErrorResponseException {
+    // 커스텀 detail 메시지 오버라이드는 팀 컨벤션상 사용하지 않음
 
-    private final HttpStatus httpStatus;
-    private final String status;
-    private final String code;
-    private final String message;
+   private final ErrorCode errorCode;
 
-    /**
-     * 디버깅 용이 아니라면, 이걸로 사용
-     */
-    public ApiException(HttpStatus httpStatus, String status, String code, String message) {
-        super(message);
-        this.httpStatus = httpStatus;
-        this.status = status;
-        this.code = code;
-        this.message = message;
-    }
+   public ApiException(ErrorCode errorCode) {
+       super(errorCode.getHttpStatus(), createBody(errorCode), null);
+       this.errorCode = errorCode;
+   }
 
     /**
-     * Error 기반 권장 생성자
+     * ErrorCode를 표준 ProblemDetail 응답으로 변환한다.
+     *
+     * - status:    HTTP 상태 코드
+     * - title:     비즈니스 에러 코드 식별자 (V001, T001 등)
+     * - detail:    사용자에게 보여줄 메시지
+     * - timestamp: 서버 발생 시각 (실무 유용 필드, setProperty로 추가)
      */
-    public ApiException(ErrorCode errorCode) {
-        super(errorCode.getMessage());
-        this.httpStatus = errorCode.getHttpStatus();
-        this.status = String.valueOf(errorCode.getHttpStatus().value());
-        this.code = errorCode.getCode();
-        this.message = errorCode.getMessage();
-    }
-
-    /**
-     * Error code + 커스텀 메세지
-     */
-    public ApiException(ErrorCode errorCode, String message) {
-        super(message);
-        this.httpStatus = errorCode.getHttpStatus();
-        this.status = String.valueOf(errorCode.getHttpStatus().value());
-        this.code = errorCode.getCode();
-        this.message = errorCode.getMessage();
+    private static ProblemDetail createBody(ErrorCode errorCode) {
+        ProblemDetail body = ProblemDetail.forStatus(errorCode.getHttpStatus());
+        body.setTitle(errorCode.getCode());
+        body.setDetail(errorCode.getMessage());
+        body.setProperty("timestamp", OffsetDateTime.now());
+        return body;
     }
 }

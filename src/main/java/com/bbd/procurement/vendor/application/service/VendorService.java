@@ -10,7 +10,9 @@ import com.bbd.procurement.vendor.application.port.out.LoadVendorPort;
 import com.bbd.procurement.vendor.application.port.out.SaveVendorPort;
 import com.bbd.procurement.vendor.application.port.out.VendorCodeGeneratorPort;
 import com.bbd.procurement.vendor.domain.Vendor;
+import com.bbd.procurement.vendor.domain.event.VendorCreated;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class VendorService implements
     private final SaveVendorPort saveVendorPort;
     private final LoadVendorPort loadVendorPort;
     private final VendorCodeGeneratorPort vendorCodeGeneratorPort;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
@@ -39,7 +42,12 @@ public class VendorService implements
         }
 
         Vendor vendor = Vendor.create(code, command.name(), command.contact(), command.terms());
-        return saveVendorPort.save(vendor);
+        Vendor saved = saveVendorPort.save(vendor);
+
+        applicationEventPublisher.publishEvent(
+                VendorCreated.of(saved.getCode(), saved.getName(),saved.getContact(), saved.getTerms()));
+
+        return saved;
     }
 
     @Override

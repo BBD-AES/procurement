@@ -27,7 +27,7 @@ public class SwaggerConfig {
                         .version("v1.0"))
                 .addServersItem(new Server()
                         .url("http://localhost:8084/procurement")
-                        .description("Local Direct"))
+                        .description("local 도커 컴포즈 이걸로"))
                 .addServersItem(new Server()
                         .url("http://192.168.201.110/procurement")
                         .description("Nginx"))

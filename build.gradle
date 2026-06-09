@@ -27,6 +27,7 @@ dependencies {
 	// Flyway (DB 마이그레이션) - 이 두 개면 충분합니다!
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
+	implementation 'org.springframework.boot:spring-boot-flyway'
 
 	// DB Driver
 	runtimeOnly 'org.postgresql:postgresql'

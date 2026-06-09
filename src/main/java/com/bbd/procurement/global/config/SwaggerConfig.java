@@ -34,6 +34,9 @@ public class SwaggerConfig {
                 .addServersItem(new Server()
                         .url("http://112.218.95.58/procurement")
                         .description("External Nginx"))
+                .addServersItem(new Server()
+                        .url("http://localhost:8080")
+                        .description("Local Local"))
 
                 // 2. OpenApiConfig에 있던 Security 컴포넌트 추가 (병합)
                 .components(new Components()

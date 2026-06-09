@@ -71,7 +71,7 @@ public class PurchaseOrder extends BaseTimeEntity {
     private List<PurchaseOrderLine> lines = new ArrayList<>();
 
     private PurchaseOrder(String poNumber, String vendorCode,
-                          String warehouseCode, LocalDate expectedArrival, String note, String createdBy) {
+                          String warehouseCode, String soId, LocalDate expectedArrival, String note, String createdBy) {
         this.poNumber = poNumber;
         this.vendorCode = vendorCode;
         this.warehouseCode = warehouseCode;
@@ -83,10 +83,10 @@ public class PurchaseOrder extends BaseTimeEntity {
     }
 
     public static PurchaseOrder create(String poNumber, String vendorCode,
-                                       String warehouseCode,LocalDate expectedArrival, String note,
+                                       String warehouseCode, String soId, LocalDate expectedArrival, String note,
                                        List<PurchaseOrderLine> initialLines, String createdBy) {
         validateRequired(poNumber, vendorCode, warehouseCode, createdBy);
-        PurchaseOrder po = new PurchaseOrder(poNumber, vendorCode, warehouseCode, expectedArrival, note, createdBy);
+        PurchaseOrder po = new PurchaseOrder(poNumber, vendorCode, warehouseCode, soId ,expectedArrival, note, createdBy);
 
         if (initialLines != null) {
             initialLines.forEach(po::attachLine);
@@ -95,13 +95,23 @@ public class PurchaseOrder extends BaseTimeEntity {
         return po;
     }
 
-    public void updateHeader(String vendorCode, String warehouseCode, LocalDate
+    public void updateHeader(String vendorCode, String warehouseCode, String soId, LocalDate
             expectedArrival, String note) {
         ensureDraft();
         if (StringUtils.hasText(vendorCode)) this.vendorCode = vendorCode;
         if (StringUtils.hasText(warehouseCode)) this.warehouseCode = warehouseCode;
+        this.soId = soId;
         this.expectedArrival = expectedArrival;
         this.note = note;
+    }
+
+    public void replaceLines(List<PurchaseOrderLine> newLines) {
+        ensureDraft();
+        this.lines.clear();
+        if (newLines != null) {
+            newLines.forEach(this::attachLine);
+        }
+        recalculateTotal();
     }
 
     public void confirm(String confirmedBy) {

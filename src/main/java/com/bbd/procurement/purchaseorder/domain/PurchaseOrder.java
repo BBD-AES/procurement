@@ -63,6 +63,9 @@ public class PurchaseOrder extends BaseTimeEntity {
     @Column(name = "received_at")
     private LocalDateTime receivedAt;
 
+    @Column(name = "so_id", length = 30)
+    private String soId;
+
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineOrder ASC")
     private List<PurchaseOrderLine> lines = new ArrayList<>();

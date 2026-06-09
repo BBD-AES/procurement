@@ -11,9 +11,9 @@ spring:
       enabled: true
 
   datasource:
-    url: ${DB_ENDPOINT}
-    username: ${DB_NAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/procurement
+    username: procurement
+    password: procurement
     driver-class-name: org.postgresql.Driver
 
   jpa:

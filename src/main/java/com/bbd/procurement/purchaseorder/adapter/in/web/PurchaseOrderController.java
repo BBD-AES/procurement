@@ -3,12 +3,15 @@ package com.bbd.procurement.purchaseorder.adapter.in.web;
 import com.bbd.procurement.global.auth.HasRole;
 import com.bbd.procurement.global.auth.Role;
 import com.bbd.procurement.global.auth.UserContextHolder;
+import com.bbd.procurement.global.auth.UserPrincipal;
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.RegisterPurchaseOrderRequest;
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.UpdatePurchaseOrderHeaderRequest;
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.UpdatePurchaseOrderLinesRequest;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderResponse;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderSummaryResponse;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
+import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurchaseOrderCommand;
+import com.bbd.procurement.purchaseorder.application.port.in.command.ConfirmPurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import io.swagger.v3.oas.annotations.Operation;
 import com.bbd.procurement.global.response.ApiResponse;
@@ -30,6 +33,8 @@ public class PurchaseOrderController {
     private final RegisterPurchaseOrderUseCase registerPurchaseOrderUseCase;
     private final UpdatePurchaseOrderHeaderUseCase updatePurchaseOrderHeaderUseCase;
     private final UpdatePurchaseOrderLinesUseCase updatePurchaseOrderLinesUseCase;
+    private final ConfirmPurchaseOrderUseCase confirmPurchaseOrderUseCase;
+    private final CancelPurchaseOrderUseCase cancelPurchaseOrderUseCase;
     private final GetPurchaseOrderQuery getPurchaseOrderQuery;
     private final ListPurchaseOrderQuery listPurchaseOrderQuery;
 
@@ -77,6 +82,40 @@ public class PurchaseOrderController {
             ) {
         PurchaseOrder po = updatePurchaseOrderLinesUseCase.updateLines(request.toCommand(poNumber));
         return ApiResponse.success(PurchaseOrderResponse.from(po));
+    }
+
+    @Operation(
+            summary = "PO 확정",
+            description = "DRAFT 상태 PO 확정 처리(DRAFT -> CONFIRMED) | 권한: HQ_MANAGER, HQ_STAFF"
+    )
+    @PostMapping("/{poNumber}/confirm")
+    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
+    public ApiResponse<PurchaseOrderResponse> confirm(
+            @Parameter(description = "PO번호", example = "PO-2026-000001")
+            @PathVariable String poNumber
+    ) {
+        String confirmedBy = UserContextHolder.current().userId();
+        PurchaseOrder po = confirmPurchaseOrderUseCase.confirm(
+                new ConfirmPurchaseOrderCommand(poNumber, confirmedBy)
+        );
+        return ApiResponse.success("PO가 확정되었습니다.", PurchaseOrderResponse.from(po));
+    }
+
+    @Operation(
+            summary = "PO 취소",
+            description = "PO 취소 처리 | HQ_STAFF는 DRAFT만, HQ_MANAGER는 DRAFT/CONFIRMED 가능"
+    )
+    @PostMapping("/{poNumber}/cancel")
+    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
+    public ApiResponse<PurchaseOrderResponse> cancel(
+            @Parameter(description = "PO 번호", example = "PO-2026-000001")
+            @PathVariable String poNumber
+    ) {
+        UserPrincipal principal = UserContextHolder.current();
+        PurchaseOrder po = cancelPurchaseOrderUseCase.cancel(
+                new CancelPurchaseOrderCommand(poNumber, principal.userId(), principal.role())
+        );
+        return ApiResponse.success("PO가 취소되었습니다.", PurchaseOrderResponse.from(po));
     }
 
     @Operation(

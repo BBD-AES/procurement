@@ -1,17 +1,16 @@
 package com.bbd.procurement.purchaseorder.application.service;
 
+import com.bbd.procurement.global.auth.Role;
 import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
-import com.bbd.procurement.purchaseorder.application.port.in.command.PurchaseOrderLineItem;
-import com.bbd.procurement.purchaseorder.application.port.in.command.RegisterPurchaseOrderCommand;
-import com.bbd.procurement.purchaseorder.application.port.in.command.UpdatePurchaseOrderHeaderCommand;
-import com.bbd.procurement.purchaseorder.application.port.in.command.UpdatePurchaseOrderLinesCommand;
+import com.bbd.procurement.purchaseorder.application.port.in.command.*;
 import com.bbd.procurement.purchaseorder.application.port.out.LoadPurchaseOrderPort;
 import com.bbd.procurement.purchaseorder.application.port.out.PurchaseOrderNumberGeneratorPort;
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseOrderPort;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderLine;
+import com.bbd.procurement.purchaseorder.domain.PurchaseOrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +24,8 @@ public class PurchaseOrderService implements
         RegisterPurchaseOrderUseCase,
         UpdatePurchaseOrderHeaderUseCase,
         UpdatePurchaseOrderLinesUseCase,
+        ConfirmPurchaseOrderUseCase,
+        CancelPurchaseOrderUseCase,
         GetPurchaseOrderQuery,
         ListPurchaseOrderQuery {
 
@@ -75,6 +76,23 @@ public class PurchaseOrderService implements
     }
 
     @Override
+    @Transactional
+    public PurchaseOrder confirm(ConfirmPurchaseOrderCommand command) {
+        PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        po.confirm(command.confirmedBy());
+        return po;
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrder cancel(CancelPurchaseOrderCommand command) {
+        PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        ensureCancelAllowed(command.requesterRole(), po.getStatus());
+        po.cancel();
+        return po;
+    }
+
+    @Override
     public PurchaseOrder getByPoNumber(String poNumber) {
         return findPurchaseOrderOrThrow(poNumber);
     }
@@ -102,6 +120,12 @@ public class PurchaseOrderService implements
                         item.quantity()
                 ))
                 .toList();
+    }
+
+    private void ensureCancelAllowed(Role requesterRole, PurchaseOrderStatus currentStatus) {
+        if (requesterRole == Role.HQ_STAFF && currentStatus != PurchaseOrderStatus.DRAFT) {
+            throw new ApiException(ErrorCode.FORBIDDEN);
+        }
     }
 }
 

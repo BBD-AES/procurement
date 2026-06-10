@@ -1,6 +1,5 @@
 package com.bbd.procurement.purchaseorder.application.service;
 
-import com.bbd.procurement.global.auth.Role;
 import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
@@ -10,12 +9,19 @@ import com.bbd.procurement.purchaseorder.application.port.out.PurchaseOrderNumbe
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseOrderPort;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderLine;
-import com.bbd.procurement.purchaseorder.domain.PurchaseOrderStatus;
+import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
+import com.bbd.procurement.shared.outbox.adapter.out.persistence.OutboxEventJpaRepository;
+import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -24,7 +30,7 @@ public class PurchaseOrderService implements
         RegisterPurchaseOrderUseCase,
         UpdatePurchaseOrderHeaderUseCase,
         UpdatePurchaseOrderLinesUseCase,
-        ConfirmPurchaseOrderUseCase,
+        CompletePurchaseOrderUseCase,
         CancelPurchaseOrderUseCase,
         GetPurchaseOrderQuery,
         ListPurchaseOrderQuery {
@@ -32,6 +38,8 @@ public class PurchaseOrderService implements
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final PurchaseOrderNumberGeneratorPort purchaseOrderNumberGeneratorPort;
+    private final OutboxEventJpaRepository outboxEventJpaRepository;
+    private final ObjectMapper objectMapper;
 
     @Override
     @Transactional
@@ -77,9 +85,10 @@ public class PurchaseOrderService implements
 
     @Override
     @Transactional
-    public PurchaseOrder confirm(ConfirmPurchaseOrderCommand command) {
+    public PurchaseOrder complete(CompletePurchaseOrderCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
-        po.confirm(command.confirmedBy());
+        po.markReceived(command.receivedBy());
+        publishStockInRequested(po);
         return po;
     }
 
@@ -87,7 +96,6 @@ public class PurchaseOrderService implements
     @Transactional
     public PurchaseOrder cancel(CancelPurchaseOrderCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
-        ensureCancelAllowed(command.requesterRole(), po.getStatus());
         po.cancel();
         return po;
     }
@@ -122,10 +130,48 @@ public class PurchaseOrderService implements
                 .toList();
     }
 
-    private void ensureCancelAllowed(Role requesterRole, PurchaseOrderStatus currentStatus) {
-        if (requesterRole == Role.HQ_STAFF && currentStatus != PurchaseOrderStatus.DRAFT) {
-            throw new ApiException(ErrorCode.FORBIDDEN);
+    private void publishStockInRequested(PurchaseOrder po) {
+        UUID eventId = UUID.randomUUID();
+        Instant occurredAt = Instant.now();
+
+        List<StockInRequested.Line> lines = po.getLines().stream()
+                .map(line -> new StockInRequested.Line(
+                        line.getSku(),
+                        line.getQuantity(),
+                        po.getWarehouseCode(),
+                        line.getUnitPrice().intValueExact()
+                ))
+                .toList();
+
+        StockInRequested event = StockInRequested.of(
+                eventId,
+                occurredAt,
+                po.getPoNumber(),
+                po.getSoId(),
+                lines
+        );
+
+        String payload;
+        try {
+            payload = objectMapper.writeValueAsString(event);
+        } catch (JacksonException e) {
+            throw new IllegalStateException(
+                    "Failed to serialize StockInRequested for PO" +
+                            po.getPoNumber(), e
+            );
         }
+
+        OutboxEvent outboxEvent = OutboxEvent.create(
+                StockInRequested.TOPIC,
+                eventId,
+                "PurchaseOrder",
+                po.getPoNumber(),
+                StockInRequested.EVENT_TYPE,
+                payload,
+                LocalDateTime.now()
+        );
+
+        outboxEventJpaRepository.save(outboxEvent);
     }
 }
 

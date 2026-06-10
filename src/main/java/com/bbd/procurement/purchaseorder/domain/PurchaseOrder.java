@@ -51,14 +51,8 @@ public class PurchaseOrder extends BaseTimeEntity {
     @Column(name = "created_by", nullable = false, length = 20, updatable = false)
     private String createdBy;
 
-    @Column(name = "confirmed_by", length = 20)
-    private String confirmedBy;
-
     @Column(name = "received_by", length = 20)
     private String receivedBy;
-
-    @Column(name = "confirmed_at")
-    private LocalDateTime confirmedAt;
 
     @Column(name = "received_at")
     private LocalDateTime receivedAt;
@@ -114,28 +108,15 @@ public class PurchaseOrder extends BaseTimeEntity {
         recalculateTotal();
     }
 
-    public void confirm(String confirmedBy) {
-        if (this.status != PurchaseOrderStatus.DRAFT) {
-            throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
-        }
-        if (lines.isEmpty()) {
-            throw new ApiException(ErrorCode.PO_LINE_REQUIRED);
-        }
-        if (!StringUtils.hasText(confirmedBy)) {
-            throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
-        }
-        this.status = PurchaseOrderStatus.CONFIRMED;
-        this.confirmedBy = confirmedBy;
-        this.confirmedAt = LocalDateTime.now();
-    }
-
-
     public void markReceived(String receivedBy) {
         if (this.status == PurchaseOrderStatus.RECEIVED) {
             throw new ApiException(ErrorCode.PO_ALREADY_RECEIVED);
         }
-        if (this.status != PurchaseOrderStatus.CONFIRMED) {
+        if (this.status != PurchaseOrderStatus.DRAFT) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
+        }
+        if (this.lines.isEmpty()) {
+            throw new ApiException(ErrorCode.PO_LINE_REQUIRED);
         }
         if (!StringUtils.hasText(receivedBy)) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);

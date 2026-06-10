@@ -39,16 +39,21 @@ public class OutboxEvent {
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
+    @Column(name = "topic", length = 100)
+    private String topic;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    private OutboxEvent(UUID eventId,
+    private OutboxEvent(String topic,
+                        UUID eventId,
                         String aggregateType,
                         String aggregateId,
                         String eventType,
                         String payload,
                         LocalDateTime occurredAt) {
+        this.topic = topic;
         this.eventId = eventId;
         this.aggregateType = aggregateType;
         this.aggregateId = aggregateId;
@@ -57,13 +62,14 @@ public class OutboxEvent {
         this.occurredAt = occurredAt;
     }
 
-    public static OutboxEvent create(UUID eventId,
+    public static OutboxEvent create(String topic,
+                                     UUID eventId,
                                      String aggregateType,
                                      String aggregateId,
                                      String eventType,
                                      String payload,
                                      LocalDateTime occurredAt) {
-        return new OutboxEvent(eventId, aggregateType, aggregateId,
+        return new OutboxEvent(topic, eventId, aggregateType, aggregateId,
                 eventType, payload, occurredAt);
     }
 

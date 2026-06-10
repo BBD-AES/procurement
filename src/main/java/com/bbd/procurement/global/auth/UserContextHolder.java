@@ -25,3 +25,5 @@ public final class UserContextHolder {
         CONTEXT.remove();
     }
 }
+
+// 현재 요청에서 처리 중인 사용자 정보(UserPrincipal)를 어디서든 꺼내 쓸 수 있게 보관하는 클래스

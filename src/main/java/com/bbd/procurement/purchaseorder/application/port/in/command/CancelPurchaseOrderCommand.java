@@ -4,7 +4,6 @@ import com.bbd.procurement.global.auth.Role;
 
 public record CancelPurchaseOrderCommand(
         String poNumber,
-        String requesterId,
-        Role requesterRole
+        String requesterId
 ) {
 }

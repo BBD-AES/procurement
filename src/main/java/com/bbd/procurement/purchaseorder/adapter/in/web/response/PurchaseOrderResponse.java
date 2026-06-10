@@ -18,11 +18,9 @@ public record PurchaseOrderResponse(
         LocalDate expectedArrival,
         String note,
         String createdBy,
-        String confirmedBy,
         String receivedBy,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
-        LocalDateTime confirmedAt,
         LocalDateTime receivedAt,
         List<PurchaseOrderLineResponse> lines
 ) {
@@ -37,11 +35,9 @@ public record PurchaseOrderResponse(
                 po.getExpectedArrival(),
                 po.getNote(),
                 po.getCreatedBy(),
-                po.getConfirmedBy(),
                 po.getReceivedBy(),
                 po.getCreatedAt(),
                 po.getUpdatedAt(),
-                po.getConfirmedAt(),
                 po.getReceivedAt(),
                 po.getLines().stream()
                         .map(PurchaseOrderLineResponse::from)

@@ -1,5 +1,6 @@
 package com.bbd.procurement.shared.outbox.application;
 
+import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.adapter.out.persistence.OutboxEventJpaRepository;
 import com.bbd.procurement.shared.outbox.domain.DomainEvent;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
@@ -22,6 +23,7 @@ public class DomainEventOutboxRelay {
         String payload = serialize(event);
 
         OutboxEvent outboxEvent = OutboxEvent.create(
+                StockInRequested.TOPIC,
                 event.eventId(),
                 event.aggregateType(),
                 event.aggregateId(),

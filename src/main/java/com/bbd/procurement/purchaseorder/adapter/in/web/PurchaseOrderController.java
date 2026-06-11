@@ -103,7 +103,7 @@ public class PurchaseOrderController {
 
     @Operation(
             summary = "PO 취소",
-            description = "PO 취소 처리 | HQ_STAFF는 DRAFT만, HQ_MANAGER는 DRAFT/CONFIRMED 가능"
+            description = "DRAFT 상태 PO 취소 처리 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @PostMapping("/{poNumber}/cancel")
     @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})

@@ -51,7 +51,7 @@ public class PurchaseOrderService implements
                 poNumber,
                 command.vendorCode(),
                 command.warehouseCode(),
-                command.soId(),
+                command.soNumber(),
                 command.expectedArrival(),
                 command.note(),
                 lines,
@@ -68,7 +68,7 @@ public class PurchaseOrderService implements
         po.updateHeader(
                 command.vendorCode(),
                 command.warehouseCode(),
-                command.soId(),
+                command.soNumber(),
                 command.expectedArrival(),
                 command.note()
         );
@@ -147,7 +147,7 @@ public class PurchaseOrderService implements
                 eventId,
                 occurredAt,
                 po.getPoNumber(),
-                po.getSoId(),
+                po.getSoNumber(),
                 lines
         );
 

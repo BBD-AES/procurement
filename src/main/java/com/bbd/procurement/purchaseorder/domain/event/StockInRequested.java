@@ -10,7 +10,7 @@ public record StockInRequested(
         String eventType,
         Instant occurredAt,
         String poNumber,
-        String soId,
+        String soNumber,
         List<Line> lines
 ) {
     public static final String SOURCE = "procurement";
@@ -28,7 +28,7 @@ public record StockInRequested(
     public static StockInRequested of (UUID eventId,
                                        Instant occurredAt,
                                        String poNumber,
-                                       String soId,
+                                       String soNumber,
                                        List<Line> lines) {
         return new StockInRequested(
                 eventId,
@@ -36,7 +36,7 @@ public record StockInRequested(
                 EVENT_TYPE,
                 occurredAt,
                 poNumber,
-                soId,
+                soNumber,
                 lines
         );
     }

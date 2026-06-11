@@ -17,7 +17,7 @@ public record UpdatePurchaseOrderHeaderRequest(
         String warehouseCode,
 
         @Size(max = 30)
-        String soId,
+        String soNumber,
 
         LocalDate expectedArrival,
 
@@ -25,7 +25,7 @@ public record UpdatePurchaseOrderHeaderRequest(
 ) {
     public UpdatePurchaseOrderHeaderCommand toCommand(String poNumber) {
         return new UpdatePurchaseOrderHeaderCommand(
-                poNumber, vendorCode, warehouseCode, soId, expectedArrival, note
+                poNumber, vendorCode, warehouseCode, soNumber, expectedArrival, note
         );
     }
 }

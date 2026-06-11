@@ -6,7 +6,7 @@ import java.util.List;
 public record RegisterPurchaseOrderCommand(
         String vendorCode,
         String warehouseCode,
-        String soId,
+        String soNumber,
         LocalDate expectedArrival,
         String note,
         List<PurchaseOrderLineItem> lines,

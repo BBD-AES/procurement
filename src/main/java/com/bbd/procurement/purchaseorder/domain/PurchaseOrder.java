@@ -57,18 +57,19 @@ public class PurchaseOrder extends BaseTimeEntity {
     @Column(name = "received_at")
     private LocalDateTime receivedAt;
 
-    @Column(name = "so_id", length = 30)
-    private String soId;
+    @Column(name = "so_number", length = 30)
+    private String soNumber;
 
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineOrder ASC")
     private List<PurchaseOrderLine> lines = new ArrayList<>();
 
     private PurchaseOrder(String poNumber, String vendorCode,
-                          String warehouseCode, String soId, LocalDate expectedArrival, String note, String createdBy) {
+                          String warehouseCode, String soNumber, LocalDate expectedArrival, String note, String createdBy) {
         this.poNumber = poNumber;
         this.vendorCode = vendorCode;
         this.warehouseCode = warehouseCode;
+        this.soNumber = soNumber;
         this.expectedArrival = expectedArrival;
         this.note = note;
         this.createdBy = createdBy;
@@ -77,10 +78,10 @@ public class PurchaseOrder extends BaseTimeEntity {
     }
 
     public static PurchaseOrder create(String poNumber, String vendorCode,
-                                       String warehouseCode, String soId, LocalDate expectedArrival, String note,
+                                       String warehouseCode, String soNumber, LocalDate expectedArrival, String note,
                                        List<PurchaseOrderLine> initialLines, String createdBy) {
         validateRequired(poNumber, vendorCode, warehouseCode, createdBy);
-        PurchaseOrder po = new PurchaseOrder(poNumber, vendorCode, warehouseCode, soId ,expectedArrival, note, createdBy);
+        PurchaseOrder po = new PurchaseOrder(poNumber, vendorCode, warehouseCode, soNumber ,expectedArrival, note, createdBy);
 
         if (initialLines != null) {
             initialLines.forEach(po::attachLine);
@@ -89,12 +90,12 @@ public class PurchaseOrder extends BaseTimeEntity {
         return po;
     }
 
-    public void updateHeader(String vendorCode, String warehouseCode, String soId, LocalDate
+    public void updateHeader(String vendorCode, String warehouseCode, String soNumber, LocalDate
             expectedArrival, String note) {
         ensureDraft();
         if (StringUtils.hasText(vendorCode)) this.vendorCode = vendorCode;
         if (StringUtils.hasText(warehouseCode)) this.warehouseCode = warehouseCode;
-        this.soId = soId;
+        this.soNumber = soNumber;
         this.expectedArrival = expectedArrival;
         this.note = note;
     }

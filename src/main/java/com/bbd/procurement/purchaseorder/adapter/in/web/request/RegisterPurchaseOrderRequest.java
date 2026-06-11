@@ -19,8 +19,8 @@ public record RegisterPurchaseOrderRequest(
         @Size(max = 20, message = "warehouseCode는 20자 이내여야 합니다.")
         String warehouseCode,
 
-        @Size(max = 30, message = "soId는 30자 이내여야 합니다.")
-        String soId,
+        @Size(max = 30, message = "soNumber는 30자 이내여야 합니다.")
+        String soNumber,
 
         LocalDate expectedArrival,
 
@@ -35,7 +35,7 @@ public record RegisterPurchaseOrderRequest(
                 :
                 lines.stream().map(PurchaseOrderLineItemRequest::toCommandItem).toList();
         return new RegisterPurchaseOrderCommand(
-                vendorCode, warehouseCode, soId, expectedArrival, note, items, createdBy
+                vendorCode, warehouseCode, soNumber, expectedArrival, note, items, createdBy
         );
     }
 }

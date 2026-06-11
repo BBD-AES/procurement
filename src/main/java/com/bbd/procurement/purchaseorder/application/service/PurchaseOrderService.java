@@ -2,6 +2,8 @@ package com.bbd.procurement.purchaseorder.application.service;
 
 import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
+import com.bbd.procurement.purchaseorder.adapter.out.external.ItemResponse;
+import com.bbd.procurement.purchaseorder.adapter.out.external.ItemRestClient;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.command.*;
 import com.bbd.procurement.purchaseorder.application.port.out.LoadPurchaseOrderPort;
@@ -15,9 +17,11 @@ import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,6 +44,7 @@ public class PurchaseOrderService implements
     private final PurchaseOrderNumberGeneratorPort purchaseOrderNumberGeneratorPort;
     private final OutboxEventJpaRepository outboxEventJpaRepository;
     private final ObjectMapper objectMapper;
+    private final ItemRestClient itemRestClient;
 
     @Override
     @Transactional
@@ -120,14 +125,28 @@ public class PurchaseOrderService implements
             return List.of();
         }
         return items.stream()
-                .map(item -> PurchaseOrderLine.create(
-                        item.lineOrder(),
-                        item.sku(),
-                        item.partName(),
-                        item.unitPrice(),
-                        item.quantity()
-                ))
+                .map(item -> {
+                    ItemResponse itemInfo = fetchItem(item.sku());
+                    return PurchaseOrderLine.create(
+                            item.lineOrder(),
+                            item.sku(),
+                            itemInfo.partName(),
+                            new BigDecimal(itemInfo.unitPrice()),
+                            item.quantity()
+                    );
+                })
                 .toList();
+    }
+
+    private ItemResponse fetchItem(String sku) {
+        try {
+            return itemRestClient.getItem(sku);
+        } catch (HttpClientErrorException.NotFound e) {
+            throw new ApiException(ErrorCode.ITEM_NOT_FOUND);
+        } catch (Exception e) {
+            throw new ApiException(ErrorCode.ITEM_SERVICE_ERROR);
+        }
+
     }
 
     private void publishStockInRequested(PurchaseOrder po) {

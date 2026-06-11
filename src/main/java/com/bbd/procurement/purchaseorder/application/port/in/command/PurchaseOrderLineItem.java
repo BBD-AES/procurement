@@ -5,8 +5,6 @@ import java.math.BigDecimal;
 public record PurchaseOrderLineItem(
         int lineOrder,
         String sku,
-        String partName,
-        BigDecimal unitPrice,
         int quantity
 ) {
 }

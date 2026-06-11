@@ -31,7 +31,11 @@ public enum ErrorCode {
     PO_NOT_EDITABLE(HttpStatus.CONFLICT, "P003", "DRAFT 상태의 PO만 수정할 수 있습니다."),
     PO_ALREADY_RECEIVED(HttpStatus.CONFLICT, "P004", "이미 입고 처리된 PO입니다."),
     PO_LINE_REQUIRED(HttpStatus.BAD_REQUEST, "P005", "PO에 최소 1개 이상의 라인이 필요합니다."),
-    PO_LINE_INVALID(HttpStatus.BAD_REQUEST, "P006", "PO 라인 항목이 올바르지 않습니다.");
+    PO_LINE_INVALID(HttpStatus.BAD_REQUEST, "P006", "PO 라인 항목이 올바르지 않습니다."),
+
+    // Item
+    ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "해당 SKU의 부품을 찾을 수 없습니다."),
+    ITEM_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "I002", "Item 서비스 호출에 실패했습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

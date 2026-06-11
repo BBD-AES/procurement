@@ -13,18 +13,10 @@ public record PurchaseOrderLineItemRequest(
         @Size(max = 50, message = "sku는 50자 이내여야 합니다.")
         String sku,
 
-        @NotBlank(message = "partName은 필수입니다.")
-        @Size(max = 200, message = "partName은 200자 이내여야 합니다.")
-        String partName,
-
-        @NotNull(message = "unitPrice는 필수입니다.")
-        @DecimalMin(value = "0.00", inclusive = true, message = "unitPrice는 0 이상이어야 합니다.")
-        BigDecimal unitPrice,
-
         @Positive(message = "quantity는 1 이상이어야 합니다.")
         int quantity
 ) {
     public PurchaseOrderLineItem toCommandItem() {
-        return new PurchaseOrderLineItem(lineOrder, sku, partName, unitPrice, quantity);
+        return new PurchaseOrderLineItem(lineOrder, sku, quantity);
     }
 }

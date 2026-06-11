@@ -10,8 +10,11 @@
 >
 > 충돌 시 우선순위: **eda-event-spec.md / price-policy.md > 이 문서**. 이 문서에는 Procurement 관점 요약만 둔다.
 >
-> **최근 큰 변경 (이슈 #25):** `CONFIRMED` 상태 제거 → 상태 머신은 **DRAFT → RECEIVED** 2단계.
-> `/confirm` + `/receive` 2개 API → **`/complete` 1개**로 통합. 과거 설계(3단계 상태, 동기 Feign, /receive)가 코드·주석·이전 문서에 남아 있어도 **이 문서가 정본**이다.
+> **최근 큰 변경 요약:**
+> - **(이슈 #25)** `CONFIRMED` 상태 제거 → 상태 머신 **DRAFT → RECEIVED** 2단계. `/confirm` + `/receive` → **`/complete` 1개** 통합.
+> - **(이슈 #27)** `VendorCreated` · `DomainEventOutboxRelay` · `DomainEvent` 인터페이스 제거 — Vendor 이벤트 Kafka 발행 없음.
+> - **(이슈 #28)** Kafka 연동 완료 — `spring-boot-starter-kafka` 추가, `MessageRelay` `KafkaTemplate.send()` 구현.
+> - **(이슈 #29 진행 중)** Item RestClient 연동 — PO 작성 시 SKU별 단가·부품명 자동 조회 (소스 확정).
 
 ---
 
@@ -25,7 +28,7 @@
   - 구매 주문(PO) 작성(DRAFT) · 완료(RECEIVED) · 취소
   - 완료 처리 — PO를 RECEIVED로 전이(동기)하면서 **`StockInRequested` 이벤트 발행 예약(outbox)** → 재고 반영은 Inventory가 비동기로 수행
   - 구매 단가(vendor 협상가)의 **거래 시점 스냅샷** 보존
-  - SO 연계 발주 시 `soId`를 이벤트에 실어 **Sales 백오더 충족 트리거** 제공
+  - SO 연계 발주 시 `soNumber`를 이벤트에 실어 **Sales 백오더 충족 트리거** 제공
   - (확장 예약) 안전재고 미달 시 PO 자동 생성 — `inventory.purchase-requested`는 아직 비계약. 현재 PO는 사람이 생성
 
 ---
@@ -40,15 +43,17 @@
 
 ### 인터페이스 (다른 서비스와의 관계)
 
-| 방향 | 대상 | 목적 | 통신 방식 |
-|---|---|---|---|
-| Procurement → Inventory | 재고 증가 요청 | 완료 처리(DRAFT → RECEIVED 전이) 시 | **순수 비동기 Kafka — `procurement.stock-in-requested` (Outbox 경유)** |
-| Procurement → Sales | 백오더 충족 트리거 | SO 연계 PO 완료 시 (`soId` 포함) | 같은 토픽 — sales가 별도 그룹(`sales-backorder`)으로 구독. **발행 코드는 동일, 추가 작업 없음** |
-| Procurement → Item | 발주 가능 부품 · 현재 기준단가 조회 | PO 작성 시 | ⚠️ 확인 필요 — 이슈 #25에서 RestClient/Feign **도입 안 함**으로 결정. 단가 스냅샷의 출처(프론트 전달? 별도 조회?) 미확정 |
-| Procurement → User/Auth | 권한 · 소속 검증 | 요청 처리 시 | ⚠️ 확인 필요 |
-| Sales → Procurement | 발주할 물품 리스트 요청 | PO 생성 트리거 | ⚠️ 확인 필요 — 단, PO가 `soId`를 보유하는 SO 연계 발주 자체는 계약에 반영됨 |
+| 방향 | 대상 | 목적 | 통신 방식                                                                 |
+|---|---|---|-----------------------------------------------------------------------|
+| Procurement → Inventory | 재고 증가 요청 | 완료 처리(DRAFT → RECEIVED 전이) 시 | **순수 비동기 Kafka — `procurement.stock-in-requested` (Outbox 경유)**       |
+| Procurement → Sales | 백오더 충족 트리거 | SO 연계 PO 완료 시 (`soNumber` 포함) | 같은 토픽 — sales가 별도 그룹(`sales-backorder`)으로 구독. **발행 코드는 동일, 추가 작업 없음** |
+| Procurement → Item | 부품명·현재 기준단가 조회 | PO 작성 시 (라인별 SKU) | **Spring RestClient 동기 호출** — `GET /api/v1/items/{sku}` (Item 서비스 `localhost:8082/item`) |
+| Procurement → User/Auth | 권한 · 소속 검증 | 요청 처리 시 | ⚠️ 확인 필요                                                              |
+| Sales → Procurement | 발주할 물품 리스트 요청 | PO 생성 트리거 | ⚠️ 확인 필요 — 단, PO가 `soNumber`를 보유하는 SO 연계 발주 자체는 계약에 반영됨               |
 
-> **변경 이력 주의:** Inventory 연동은 "동기 Feign" → (v3 계약) "이벤트 기반" → (이슈 #25) **RestClient/Feign 자체를 도입하지 않는 순수 비동기**로 확정됐다. 동기 HTTP 클라이언트(Feign/RestClient) 코드를 작성하지 말 것.
+> **변경 이력 주의:**
+> - Inventory 연동: "동기 Feign" → "이벤트 기반(v3)" → (이슈 #25) **순수 비동기 Kafka**로 확정. Inventory에 동기 HTTP 코드 작성 금지.
+> - Item 연동: (이슈 #25) "도입 안 함" → (이슈 #29) **RestClient로 확정**. PO 작성 시 SKU별 단가·부품명 조회에만 사용.
 
 ---
 
@@ -70,7 +75,7 @@ PurchaseOrder
 ├ number         // 유일. 형식 PO-YYYY-NNNNNN (이벤트 메시지 key로도 사용)
 ├ vendorCode     // Vendor 참조 (FK 아님, 코드 참조)
 ├ status         // DRAFT / RECEIVED / CANCELED  ← CONFIRMED 없음 (이슈 #25)
-├ soId           // nullable. SO 연계 발주일 때만 보유 → StockInRequested.soId로 전달 (백오더 트리거)
+├ soNumber       // nullable. SO 연계 발주일 때만 보유 → StockInRequested.soNumber로 전달 (백오더 트리거)
 ├ warehouseCode  // 입고 창고 (inventory Warehouse.code 형식, 예: WH-HQ-001) — 이벤트 라인에 실림
 ├ createdBy / receivedBy                 // 사번 (confirmedBy/At는 V6 마이그레이션으로 제거)
 ├ createdAt / receivedAt
@@ -94,7 +99,7 @@ PurchaseOrderLine
 
 | 가격 | 위치 | Procurement 관점 |
 |---|---|---|
-| 현재 기준단가 | `item.unitPrice` (int, 진실원천) | 참고용. Procurement가 런타임에 join하지 않는다. 조회 경로는 ⚠️ (§2) |
+| 현재 기준단가 | `item.unitPrice` (int, 진실원천) | PO 작성 시 RestClient(`GET /api/v1/items/{sku}`)로 조회 → 라인 스냅샷. 이후 마스터 변경과 무관 |
 | **거래가 스냅샷** | **PO 라인 `unitPrice`** | **우리가 책임지는 값.** vendor 협상가, 작성 후 불변 (상사문서 — 감사·3-way match 근거) |
 | 재고 단가 | `stock.unitPrice` | inventory 소관. 우리 거래가로 절대 덮어쓰이지 않음 (이벤트의 unitPrice는 movement 이력용) |
 
@@ -143,7 +148,7 @@ DRAFT ──완료(complete)──> RECEIVED
    - 커밋 → 클라이언트에 응답
 ③ MessageRelay(1초 폴링, 비동기)가 outbox 행을 읽어 KafkaTemplate.send(topic, key, payload)
 ④ inventory가 수신 → 재고 증가 + movement(IN, 거래가) 기록
-   sales(sales-backorder 그룹)가 수신 → soId 있으면 백오더 충족 흐름
+   sales(sales-backorder 그룹)가 수신 → soNumber 있으면 백오더 충족 흐름
 ```
 
 **멱등성 구조**
@@ -159,9 +164,9 @@ DRAFT ──완료(complete)──> RECEIVED
 - 토픽 `procurement.stock-in-requested` · key = `poNumber` · JSON 문자열 직렬화
 - 발행 시점: **PO RECEIVED 전이 시점** (= `/complete` 트랜잭션) — 계약 문구와 일치, CONFIRMED 제거와 무관하게 유효
 - envelope: `eventId`(UUID) / `source`="procurement" / `eventType`="STOCK_IN_REQUESTED" / `occurredAt`=**UTC Instant 문자열** (`Instant.toString()`, LocalDateTime 금지)
-- body: `poNumber`, `soId`(nullable — SO 연계 발주만), `lines[]`(sku, quantity, warehouseCode, unitPrice **원화 int**)
+- body: `poNumber`, `soNumber`(nullable — SO 연계 발주만), `lines[]`(sku, quantity, warehouseCode, unitPrice **원화 int**)
 - DTO record는 계약 문서에서 **그대로 복붙** (공유 jar 없음, 구독 레포와 동일 정의 유지)
-- ⚠️ 기존 `DomainEvent` 인터페이스 경유 금지 — `occurredAt` LocalDateTime 충돌. DTO를 직접 직렬화해 payload 저장.
+- `DomainEvent` 인터페이스는 이슈 #27에서 제거됨 — DTO를 직접 직렬화해 payload 저장.
 
 ---
 
@@ -217,8 +222,8 @@ DRAFT ──완료(complete)──> RECEIVED
 
 - Language / Framework: Java 21 + Spring Boot 4.0.6
 - Build: **Gradle**
-- DB: **PostgreSQL** (Procurement 전용) · 스키마 변경은 마이그레이션으로 관리 (V6 = confirmed_by/at 제거)
-- 동기 HTTP 클라이언트(Feign/RestClient): **도입 안 함** (이슈 #25) — Inventory 연동은 Kafka only. Item 단가 조회 경로는 ⚠️ (§2)
+- DB: **PostgreSQL** (Procurement 전용) · 스키마 변경은 마이그레이션으로 관리 (V5 = confirmed 컬럼 제거, V6 = outbox topic 컬럼, V7 = so_id → so_number)
+- 동기 HTTP 클라이언트: **Spring RestClient** (Item 단가·부품명 조회 전용) — Feign 미사용. Inventory 연동은 Kafka only.
 - Kafka: **`org.springframework.boot:spring-boot-starter-kafka`** — raw `org.springframework.kafka:spring-kafka`만 넣으면 Boot 4.0 모듈 분리로 `KafkaTemplate` 빈이 안 생겨 **기동 실패** (sales에서 실증)
 - 직렬화: JSON 문자열 (key/value String serializer, 타입 헤더 없음) — Jackson 2/3 혼재 무관
 - 아키텍처 스타일: 도메인별 패키징 → 후에 헥사고날 아키텍처 도입 예상
@@ -231,14 +236,17 @@ DRAFT ──완료(complete)──> RECEIVED
 ## 9. 구현 현황 / 체크리스트 (procurement 분)
 
 - [x] `outbox_event` 테이블 + MessageRelay(1초 폴링) 완비
-- [ ] **V6 마이그레이션: `confirmed_by` / `confirmed_at` 컬럼 제거** + status enum에서 CONFIRMED 제거
-- [ ] `po.confirm()` 도메인 메서드 제거, **DRAFT→RECEIVED 전이 메서드(`complete()`)** 정비 — 기존 `markReceived()`가 CONFIRMED 전제라면 DRAFT 전제로 수정/대체
-- [ ] `spring-boot-starter-kafka` + 브로커 설정
-- [ ] `MessageRelay.publish()` 로그 스텁 → `KafkaTemplate.send(topic, key, payload)` 교체
-- [ ] outbox 행에 **topic 컬럼**(또는 eventType→topic 매핑) — 폴러가 행만 보고 발행처를 알아야 한다
-- [ ] **`POST .../complete` 유스케이스 + 엔드포인트 신설** — 도메인 전이와 `StockInRequested` outbox INSERT를 같은 트랜잭션으로 (HQ_MANAGER 권한)
-- [ ] cancel 권한 분기 단순화 반영 (둘 다 DRAFT만)
-- [ ] PO에 `soId` / `warehouseCode` 반영 여부 점검 (이벤트 payload 소스)
+- [x] V5 마이그레이션: `confirmed_by` / `confirmed_at` 컬럼 제거 + status enum CONFIRMED 제거 (이슈 #25)
+- [x] `po.confirm()` 제거, `complete()` (DRAFT→RECEIVED) 구현 (이슈 #25)
+- [x] `POST .../complete` 유스케이스 + 엔드포인트 (이슈 #25)
+- [x] V6 마이그레이션: outbox_event `topic` 컬럼 추가 (이슈 #25)
+- [x] `spring-boot-starter-kafka` + 브로커 설정 (이슈 #28)
+- [x] `MessageRelay.publish()` → `KafkaTemplate.send(topic, key, payload)` 교체 (이슈 #28)
+- [x] `VendorCreated` · `DomainEventOutboxRelay` · `DomainEvent` 제거 (이슈 #27)
+- [x] V7 마이그레이션: `so_id` → `so_number` 컬럼 rename (이슈 #25 후속)
+- [ ] **ItemRestClient 구현 + PO 작성 시 SKU별 단가·부품명 자동 조회** (이슈 #29 진행 중)
+- [ ] Gateway JWT 검증 방식 확정 및 구현 (⚠️ 팀 결정 필요)
+- [ ] Sales → Procurement PO 생성 트리거 방식 확정 (⚠️ 팀 결정 필요)
 
 ### 빌드 / 실행 / 테스트 명령
 
@@ -256,11 +264,11 @@ DRAFT ──완료(complete)──> RECEIVED
 - 상태 전이 로직은 **반드시 도메인 객체 내부**에 둔다. 서비스 레이어에서 상태를 직접 바꾸지 않는다.
 - PO 라인의 부품명·단가는 **항상 스냅샷**으로 저장한다. Item을 런타임에 join하지 않는다.
 - 다른 서비스 DB에 직접 접근하지 않는다. API/이벤트만 사용.
-- **Inventory 연동에 동기 HTTP(Feign/RestClient) 코드를 만들지 않는다** — 반드시 §5의 outbox → Kafka 흐름. `/receive` 엔드포인트도 만들지 않는다.
+- **Inventory 연동에 동기 HTTP 코드를 만들지 않는다** — 반드시 §5의 outbox → Kafka 흐름. RestClient는 Item 단가·부품명 조회 전용.
 - 완료 처리는 "PO 상태 변경(DRAFT→RECEIVED) + outbox INSERT"가 **한 트랜잭션**(동기)으로 함께 성공/실패하도록 작성한다. Kafka 발행은 relay가 비동기로.
 - `eventId`는 outbox INSERT 시점에 1회 생성·저장한다. relay가 발행할 때마다 새로 만들지 않는다.
 - 이벤트 DTO는 [계약 문서](./eda-event-spec.md)의 record를 **그대로 복붙**한다. 필드 추가는 nullable만, 변경은 계약 PR로.
-- `occurredAt`은 UTC `Instant` 문자열. LocalDateTime 직렬화 금지. 기존 `DomainEvent` 인터페이스 경유 금지.
+- `occurredAt`은 UTC `Instant` 문자열. LocalDateTime 직렬화 금지. `DomainEvent` 인터페이스는 제거됨 — DTO 직접 직렬화.
 - 이벤트의 단가는 원화 정수(int) — BigDecimal은 `intValueExact()`.
 - SCS(Spring Cloud Stream) 도입 금지 (4팀 합의: plain spring-kafka 통일).
 - `⚠️ 확인 필요` 항목은 추측해서 코드에 박지 말고 먼저 질문할 것.

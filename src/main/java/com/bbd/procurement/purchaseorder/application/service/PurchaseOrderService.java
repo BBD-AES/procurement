@@ -2,23 +2,20 @@ package com.bbd.procurement.purchaseorder.application.service;
 
 import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
-import com.bbd.procurement.purchaseorder.adapter.out.external.ItemResponse;
-import com.bbd.procurement.purchaseorder.adapter.out.external.ItemRestClient;
-import com.bbd.procurement.purchaseorder.adapter.out.persistence.PurchaseOrderHistoryJpaRepository;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.command.*;
 import com.bbd.procurement.purchaseorder.application.port.out.*;
+import com.bbd.procurement.purchaseorder.application.port.out.result.ItemResult;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderChangeType;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderHistory;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderLine;
 import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
-import com.bbd.procurement.shared.outbox.adapter.out.persistence.OutboxEventJpaRepository;
+import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.HttpClientErrorException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -44,12 +41,11 @@ public class PurchaseOrderService implements
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final PurchaseOrderNumberGeneratorPort purchaseOrderNumberGeneratorPort;
-    private final OutboxEventJpaRepository outboxEventJpaRepository;
+    private final SaveOutboxEventPort saveOutboxEventPort;
     private final ObjectMapper objectMapper;
-    private final ItemRestClient itemRestClient;
+    private final LoadItemPort loadItemPort;
     private final SavePurchaseOrderHistoryPort savePurchaseOrderHistoryPort;
     private final LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
-    private final PurchaseOrderHistoryJpaRepository purchaseOrderHistoryJpaRepository;
 
     @Override
     @Transactional
@@ -147,7 +143,7 @@ public class PurchaseOrderService implements
         }
         return items.stream()
                 .map(item -> {
-                    ItemResponse itemInfo = fetchItem(item.sku());
+                    ItemResult itemInfo = loadItemPort.findBySku(item.sku());
                     return PurchaseOrderLine.create(
                             item.lineOrder(),
                             item.sku(),
@@ -157,17 +153,6 @@ public class PurchaseOrderService implements
                     );
                 })
                 .toList();
-    }
-
-    private ItemResponse fetchItem(String sku) {
-        try {
-            return itemRestClient.getItem(sku);
-        } catch (HttpClientErrorException.NotFound e) {
-            throw new ApiException(ErrorCode.ITEM_NOT_FOUND);
-        } catch (Exception e) {
-            throw new ApiException(ErrorCode.ITEM_SERVICE_ERROR);
-        }
-
     }
 
     private String snapshot(PurchaseOrder po) {
@@ -235,7 +220,7 @@ public class PurchaseOrderService implements
                 LocalDateTime.now()
         );
 
-        outboxEventJpaRepository.save(outboxEvent);
+        saveOutboxEventPort.save(outboxEvent);
     }
 }
 

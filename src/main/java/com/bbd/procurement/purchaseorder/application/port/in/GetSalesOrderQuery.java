@@ -1,9 +1,9 @@
 package com.bbd.procurement.purchaseorder.application.port.in;
 
-import com.bbd.procurement.purchaseorder.adapter.out.external.SalesOrderResponse;
+import com.bbd.procurement.purchaseorder.application.port.out.result.SalesOrderResult;
 
 public interface GetSalesOrderQuery {
 
-    SalesOrderResponse getBySoNumber(String soNumber);
+    SalesOrderResult getBySoNumber(String soNumber);
 
 }

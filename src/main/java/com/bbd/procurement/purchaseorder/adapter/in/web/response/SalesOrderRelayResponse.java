@@ -1,6 +1,6 @@
 package com.bbd.procurement.purchaseorder.adapter.in.web.response;
 
-import com.bbd.procurement.purchaseorder.adapter.out.external.SalesOrderResponse;
+import com.bbd.procurement.purchaseorder.application.port.out.result.SalesOrderResult;
 
 import java.util.List;
 
@@ -30,7 +30,7 @@ public record SalesOrderRelayResponse(
 
     }
 
-    public static SalesOrderRelayResponse from(SalesOrderResponse so) {
+    public static SalesOrderRelayResponse from(SalesOrderResult so) {
         return new SalesOrderRelayResponse(
                 so.soNumber(),
                 so.fromWarehouseCode(),

@@ -1,4 +1,4 @@
-package com.bbd.procurement.shared.outbox.application;
+package com.bbd.procurement.shared.outbox.adapter.out.messaging;
 
 import com.bbd.procurement.shared.outbox.adapter.out.persistence.OutboxEventJpaRepository;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;

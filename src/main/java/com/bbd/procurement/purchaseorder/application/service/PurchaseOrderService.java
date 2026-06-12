@@ -11,7 +11,7 @@ import com.bbd.procurement.purchaseorder.domain.PurchaseOrderChangeType;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderHistory;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderLine;
 import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
-import com.bbd.procurement.shared.outbox.adapter.out.persistence.OutboxEventJpaRepository;
+import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,7 +41,7 @@ public class PurchaseOrderService implements
     private final SavePurchaseOrderPort savePurchaseOrderPort;
     private final LoadPurchaseOrderPort loadPurchaseOrderPort;
     private final PurchaseOrderNumberGeneratorPort purchaseOrderNumberGeneratorPort;
-    private final OutboxEventJpaRepository outboxEventJpaRepository;
+    private final SaveOutboxEventPort saveOutboxEventPort;
     private final ObjectMapper objectMapper;
     private final LoadItemPort loadItemPort;
     private final SavePurchaseOrderHistoryPort savePurchaseOrderHistoryPort;
@@ -220,7 +220,7 @@ public class PurchaseOrderService implements
                 LocalDateTime.now()
         );
 
-        outboxEventJpaRepository.save(outboxEvent);
+        saveOutboxEventPort.save(outboxEvent);
     }
 }
 

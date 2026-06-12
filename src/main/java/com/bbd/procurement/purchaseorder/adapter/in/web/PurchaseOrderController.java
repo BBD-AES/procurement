@@ -1,9 +1,6 @@
 package com.bbd.procurement.purchaseorder.adapter.in.web;
 
-import com.bbd.procurement.global.auth.HasRole;
-import com.bbd.procurement.global.auth.Role;
-import com.bbd.procurement.global.auth.UserContextHolder;
-import com.bbd.procurement.global.auth.UserPrincipal;
+import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.RegisterPurchaseOrderRequest;
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.UpdatePurchaseOrderHeaderRequest;
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.UpdatePurchaseOrderLinesRequest;
@@ -15,7 +12,6 @@ import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurch
 import com.bbd.procurement.purchaseorder.application.port.in.command.CompletePurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import io.swagger.v3.oas.annotations.Operation;
-import com.bbd.procurement.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -48,12 +44,12 @@ public class PurchaseOrderController {
     )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<PurchaseOrderResponse> register(
+            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
+            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId,
             @Valid @RequestBody RegisterPurchaseOrderRequest request
             ) {
-        String createdBy = UserContextHolder.current().userId();
-        PurchaseOrder po = registerPurchaseOrderUseCase.register(request.toCommand(createdBy));
+        PurchaseOrder po = registerPurchaseOrderUseCase.register(request.toCommand(userId));
         return ApiResponse.success("구매 주문이 작성되었습니다.",
                 PurchaseOrderResponse.from(po));
     }
@@ -63,14 +59,14 @@ public class PurchaseOrderController {
             description = "DRAFT 상태의 PO 헤더 정보 수정 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @PatchMapping("/{poNumber}")
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<PurchaseOrderResponse> updateHeader(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
             @PathVariable String poNumber,
+            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
+            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId,
             @Valid @RequestBody UpdatePurchaseOrderHeaderRequest request
             ) {
-        String updatedBy = UserContextHolder.current().userId();
-        PurchaseOrder po = updatePurchaseOrderHeaderUseCase.updateHeader(request.toCommand(poNumber, updatedBy));
+        PurchaseOrder po = updatePurchaseOrderHeaderUseCase.updateHeader(request.toCommand(poNumber, userId));
         return ApiResponse.success(PurchaseOrderResponse.from(po));
     }
 
@@ -79,14 +75,14 @@ public class PurchaseOrderController {
             description = "DRAFT 상태의 PO 라인 전체 교체 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @PutMapping("/{poNumber}/lines")
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<PurchaseOrderResponse> updateLines(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
             @PathVariable String poNumber,
+            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
+            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId,
             @Valid @RequestBody UpdatePurchaseOrderLinesRequest request
             ) {
-        String updatedBy = UserContextHolder.current().userId();
-        PurchaseOrder po = updatePurchaseOrderLinesUseCase.updateLines(request.toCommand(poNumber, updatedBy));
+        PurchaseOrder po = updatePurchaseOrderLinesUseCase.updateLines(request.toCommand(poNumber, userId));
         return ApiResponse.success(PurchaseOrderResponse.from(po));
     }
 
@@ -95,14 +91,14 @@ public class PurchaseOrderController {
             description = "DRAFT 상태 PO 완료 처리(DRAFT -> RECEIVED) | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @PostMapping("/{poNumber}/complete")
-    @HasRole({Role.HQ_MANAGER})
     public ApiResponse<PurchaseOrderResponse> complete(
             @Parameter(description = "PO번호", example = "PO-2026-000001")
-            @PathVariable String poNumber
+            @PathVariable String poNumber,
+            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
+            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId
     ) {
-        String receivedBy = UserContextHolder.current().userId();
         PurchaseOrder po = completePurchaseOrderUseCase.complete(
-                new CompletePurchaseOrderCommand(poNumber, receivedBy)
+                new CompletePurchaseOrderCommand(poNumber, userId)
         );
         return ApiResponse.success("PO가 완료되었습니다.", PurchaseOrderResponse.from(po));
     }
@@ -112,14 +108,14 @@ public class PurchaseOrderController {
             description = "DRAFT 상태 PO 취소 처리 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @PostMapping("/{poNumber}/cancel")
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<PurchaseOrderResponse> cancel(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
-            @PathVariable String poNumber
+            @PathVariable String poNumber,
+            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
+            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId
     ) {
-        String requesterId = UserContextHolder.current().userId();
         PurchaseOrder po = cancelPurchaseOrderUseCase.cancel(
-                new CancelPurchaseOrderCommand(poNumber, requesterId)
+                new CancelPurchaseOrderCommand(poNumber, userId)
         );
         return ApiResponse.success("PO가 취소되었습니다.", PurchaseOrderResponse.from(po));
     }
@@ -129,10 +125,11 @@ public class PurchaseOrderController {
             description = "PO 상세 정보 조회 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @GetMapping("/{poNumber}")
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<PurchaseOrderResponse> get(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
-            @PathVariable String poNumber
+            @PathVariable String poNumber,
+            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
+            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId
     ) {
         PurchaseOrder po = getPurchaseOrderQuery.getByPoNumber(poNumber);
         return ApiResponse.success(PurchaseOrderResponse.from(po));
@@ -143,7 +140,6 @@ public class PurchaseOrderController {
             description = "전체 PO 요약 목록 조회 |  권한: HQ_MANAGER,HQ_STAFF"
     )
     @GetMapping
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<List<PurchaseOrderSummaryResponse>> list() {
         List<PurchaseOrderSummaryResponse> result =
                 listPurchaseOrderQuery.list().stream()
@@ -157,7 +153,6 @@ public class PurchaseOrderController {
             description = "PO의 생성·수정·완료·취소 이력을 시간순으로 조회 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @GetMapping("/{poNumber}/history")
-    @HasRole({Role.HQ_STAFF, Role.HQ_MANAGER})
     public ApiResponse<List<PurchaseOrderHistoryResponse>> getHistory(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
             @PathVariable String poNumber

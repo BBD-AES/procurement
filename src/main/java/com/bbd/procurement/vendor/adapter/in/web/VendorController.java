@@ -1,7 +1,5 @@
 package com.bbd.procurement.vendor.adapter.in.web;
 
-import com.bbd.procurement.global.auth.HasRole;
-import com.bbd.procurement.global.auth.Role;
 import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.vendor.adapter.in.web.request.ChangeVendorActivationRequest;
 import com.bbd.procurement.vendor.adapter.in.web.request.RegisterVendorRequest;
@@ -37,7 +35,6 @@ public class VendorController {
     )
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @HasRole({Role.HQ_MANAGER})
     public ApiResponse<VendorResponse> register(
             @Valid @RequestBody RegisterVendorRequest request
     ) {
@@ -50,7 +47,6 @@ public class VendorController {
             description = "기존 공급사 정보를 수정 | 권한 : HQ_MANAGER"
     )
     @PatchMapping("/{code}")
-    @HasRole({Role.HQ_MANAGER})
     public ApiResponse<VendorResponse> update(
             @PathVariable String code,
             @Valid @RequestBody UpdateVendorRequest request
@@ -64,7 +60,6 @@ public class VendorController {
             description = "공급사의 활성 상태를 변경 | 권한 : HQ_MANAGER"
     )
     @PatchMapping("/{code}/active")
-    @HasRole({Role.HQ_MANAGER})
     public ApiResponse<VendorResponse> changeActivation(
             @PathVariable String code,
             @Valid @RequestBody ChangeVendorActivationRequest request
@@ -78,7 +73,6 @@ public class VendorController {
             description = "공급사 상세 정보를 조회 | 권한 : HQ_MANAGER, HQ_STAFF"
     )
     @GetMapping("/{code}")
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<VendorResponse> get(@PathVariable String code) {
         Vendor vendor = getVendorQuery.getByCode(code);
         return ApiResponse.success(VendorResponse.from(vendor));
@@ -89,7 +83,6 @@ public class VendorController {
             description = "전체 공급사 요약 목록을 조회 | 권한 : HQ_MANAGER, HQ_STAFF"
     )
     @GetMapping
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<List<VendorSummaryResponse>> list() {
         List<VendorSummaryResponse> result = listVendorQuery.list().stream()
                 .map(VendorSummaryResponse::from)

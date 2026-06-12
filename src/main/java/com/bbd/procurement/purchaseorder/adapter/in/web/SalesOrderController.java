@@ -1,7 +1,5 @@
 package com.bbd.procurement.purchaseorder.adapter.in.web;
 
-import com.bbd.procurement.global.auth.HasRole;
-import com.bbd.procurement.global.auth.Role;
 import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.SalesOrderRelayResponse;
 import com.bbd.procurement.purchaseorder.application.port.in.GetSalesOrderQuery;
@@ -27,7 +25,6 @@ public class SalesOrderController {
             description = "발주 요청 기반 PO 작성을 위해 Sales 서비스의 SO 상세를 조회 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @GetMapping("/{soNumber}")
-    @HasRole({Role.HQ_MANAGER, Role.HQ_STAFF})
     public ApiResponse<SalesOrderRelayResponse> get(
             @Parameter(description = "SO 번호", example = "SO-2026-0001")
             @PathVariable String soNumber

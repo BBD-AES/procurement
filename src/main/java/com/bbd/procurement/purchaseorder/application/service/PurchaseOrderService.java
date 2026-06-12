@@ -4,12 +4,13 @@ import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
 import com.bbd.procurement.purchaseorder.adapter.out.external.ItemResponse;
 import com.bbd.procurement.purchaseorder.adapter.out.external.ItemRestClient;
+import com.bbd.procurement.purchaseorder.adapter.out.persistence.PurchaseOrderHistoryJpaRepository;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.command.*;
-import com.bbd.procurement.purchaseorder.application.port.out.LoadPurchaseOrderPort;
-import com.bbd.procurement.purchaseorder.application.port.out.PurchaseOrderNumberGeneratorPort;
-import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseOrderPort;
+import com.bbd.procurement.purchaseorder.application.port.out.*;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
+import com.bbd.procurement.purchaseorder.domain.PurchaseOrderChangeType;
+import com.bbd.procurement.purchaseorder.domain.PurchaseOrderHistory;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderLine;
 import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.adapter.out.persistence.OutboxEventJpaRepository;
@@ -45,6 +46,9 @@ public class PurchaseOrderService implements
     private final OutboxEventJpaRepository outboxEventJpaRepository;
     private final ObjectMapper objectMapper;
     private final ItemRestClient itemRestClient;
+    private final SavePurchaseOrderHistoryPort savePurchaseOrderHistoryPort;
+    private final LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
+    private final PurchaseOrderHistoryJpaRepository purchaseOrderHistoryJpaRepository;
 
     @Override
     @Transactional
@@ -63,13 +67,16 @@ public class PurchaseOrderService implements
                 command.createdBy()
 
         );
-        return savePurchaseOrderPort.save(po);
+        PurchaseOrder saved = savePurchaseOrderPort.save(po);
+        recordHistory(saved, PurchaseOrderChangeType.CREATED, null, command.createdBy());
+        return saved;
     }
 
     @Override
     @Transactional
     public PurchaseOrder updateHeader(UpdatePurchaseOrderHeaderCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        String before = snapshot(po);
         po.updateHeader(
                 command.vendorCode(),
                 command.warehouseCode(),
@@ -77,6 +84,7 @@ public class PurchaseOrderService implements
                 command.expectedArrival(),
                 command.note()
         );
+        recordHistory(po, PurchaseOrderChangeType.HEADER_UPDATED, before, command.updatedBy());
         return po;
     }
 
@@ -84,7 +92,9 @@ public class PurchaseOrderService implements
     @Transactional
     public PurchaseOrder updateLines(UpdatePurchaseOrderLinesCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        String before = snapshot(po);
         po.replaceLines(toLines(command.lines()));
+        recordHistory(po, PurchaseOrderChangeType.LINES_REPLACED, before, command.updatedBy());
         return po;
     }
 
@@ -92,8 +102,10 @@ public class PurchaseOrderService implements
     @Transactional
     public PurchaseOrder complete(CompletePurchaseOrderCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        String before = snapshot(po);
         po.markReceived(command.receivedBy());
         publishStockInRequested(po);
+        recordHistory(po, PurchaseOrderChangeType.COMPLETED, before, command.receivedBy());
         return po;
     }
 
@@ -101,7 +113,9 @@ public class PurchaseOrderService implements
     @Transactional
     public PurchaseOrder cancel(CancelPurchaseOrderCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        String before = snapshot(po);
         po.cancel();
+        recordHistory(po, PurchaseOrderChangeType.CANCELED, before, command.requesterId());
         return po;
     }
 
@@ -147,6 +161,30 @@ public class PurchaseOrderService implements
             throw new ApiException(ErrorCode.ITEM_SERVICE_ERROR);
         }
 
+    }
+
+    private String snapshot(PurchaseOrder po) {
+        try {
+            return objectMapper.writeValueAsString(PurchaseOrderSnapshot.from(po));
+        } catch (JacksonException e) {
+            throw new IllegalStateException(
+                    "Failed to serialize PurchaseOrderSnapshot for PO" + po.getPoNumber(), e
+            );
+        }
+    }
+
+    private void recordHistory(PurchaseOrder po,
+                               PurchaseOrderChangeType changeType,
+                               String beforePayload,
+                               String changedBy) {
+        PurchaseOrderHistory history = PurchaseOrderHistory.create(
+                po.getPoNumber(),
+                changeType,
+                beforePayload,
+                snapshot(po),
+                changedBy
+        );
+        savePurchaseOrderHistoryPort.save(history);
     }
 
     private void publishStockInRequested(PurchaseOrder po) {

@@ -13,10 +13,10 @@ public record UpdatePurchaseOrderLinesRequest(
         @NotEmpty(message = "lines는 최소 1개 이상이여야 합니다.")
         List<PurchaseOrderLineItemRequest> lines
 ) {
-    public UpdatePurchaseOrderLinesCommand toCommand(String poNumber) {
+    public UpdatePurchaseOrderLinesCommand toCommand(String poNumber, String updatedBy) {
         List<PurchaseOrderLineItem> items = lines.stream()
                 .map(PurchaseOrderLineItemRequest::toCommandItem)
                 .toList();
-        return new UpdatePurchaseOrderLinesCommand(poNumber, items);
+        return new UpdatePurchaseOrderLinesCommand(poNumber, items, updatedBy);
     }
 }

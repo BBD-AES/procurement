@@ -65,7 +65,8 @@ public class PurchaseOrderController {
             @PathVariable String poNumber,
             @Valid @RequestBody UpdatePurchaseOrderHeaderRequest request
             ) {
-        PurchaseOrder po = updatePurchaseOrderHeaderUseCase.updateHeader(request.toCommand(poNumber));
+        String updatedBy = UserContextHolder.current().userId();
+        PurchaseOrder po = updatePurchaseOrderHeaderUseCase.updateHeader(request.toCommand(poNumber, updatedBy));
         return ApiResponse.success(PurchaseOrderResponse.from(po));
     }
 
@@ -80,7 +81,8 @@ public class PurchaseOrderController {
             @PathVariable String poNumber,
             @Valid @RequestBody UpdatePurchaseOrderLinesRequest request
             ) {
-        PurchaseOrder po = updatePurchaseOrderLinesUseCase.updateLines(request.toCommand(poNumber));
+        String updatedBy = UserContextHolder.current().userId();
+        PurchaseOrder po = updatePurchaseOrderLinesUseCase.updateLines(request.toCommand(poNumber, updatedBy));
         return ApiResponse.success(PurchaseOrderResponse.from(po));
     }
 

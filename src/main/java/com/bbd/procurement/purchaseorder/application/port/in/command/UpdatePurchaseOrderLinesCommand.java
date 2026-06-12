@@ -4,6 +4,7 @@ import java.util.List;
 
 public record UpdatePurchaseOrderLinesCommand(
         String poNumber,
-        List<PurchaseOrderLineItem> lines
+        List<PurchaseOrderLineItem> lines,
+        String updatedBy
 ) {
 }

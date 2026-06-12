@@ -8,6 +8,7 @@ public record UpdatePurchaseOrderHeaderCommand(
         String warehouseCode,
         String soNumber,
         LocalDate expectedArrival,
-        String note
+        String note,
+        String updatedBy
 ) {
 }

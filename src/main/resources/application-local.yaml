@@ -11,9 +11,9 @@ spring:
       enabled: true
 
   datasource:
-    url: ${DB_ENDPOINT}
-    username: ${DB_NAME}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/procurement
+    username: procurement
+    password: procurement
     driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -32,9 +32,21 @@ spring:
     baseline-on-migrate: true
     locations: classpath:db/migration
 
+  kafka:
+    bootstrap-servers: kafka.inwoohub.com:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 springdoc:
   swagger-ui:
     tags-sorter: alpha
     operations-sorter: alpha
     config-url: /procurement/v3/api-docs/swagger-config
     url: /procurement/v3/api-docs
+
+item:
+  base-url: http://localhost:8082/item
+
+sales:
+  base-url: http://localhost:8085/sales

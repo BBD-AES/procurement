@@ -2,7 +2,7 @@ package com.bbd.procurement.workorder.adapter.out.persistence;
 
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderRequestNotificationPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderRequestNotificationPort;
-import com.bbd.procurement.workorder.domain.WorkOrederRequestNotification;
+import com.bbd.procurement.workorder.domain.WorkOrderRequestNotification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -17,12 +17,12 @@ public class WorkOrderRequestNotificationPersistenceAdapter
     private final WorkOrderRequestNotificationJpaRepository workOrderRequestNotificationJpaRepository;
 
     @Override
-    public void save(WorkOrederRequestNotification notification) {
+    public void save(WorkOrderRequestNotification notification) {
         workOrderRequestNotificationJpaRepository.save(notification);
     }
 
     @Override
-    public List<WorkOrederRequestNotification> findAllOrderByReceivedAtDesc() {
+    public List<WorkOrderRequestNotification> findAllOrderByReceivedAtDesc() {
         return workOrderRequestNotificationJpaRepository.findAllByOrderByReceivedAtDesc();
     }
 }

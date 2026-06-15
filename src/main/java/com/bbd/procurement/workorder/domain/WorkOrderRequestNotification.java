@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "work_order_request_notification")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class WorkOrederRequestNotification {
+public class WorkOrderRequestNotification {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,8 +41,8 @@ public class WorkOrederRequestNotification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    private WorkOrederRequestNotification(String eventId, String soNumber, String warehouseCode,
-                                          String payload, LocalDateTime receivedAt) {
+    private WorkOrderRequestNotification(String eventId, String soNumber, String warehouseCode,
+                                         String payload, LocalDateTime receivedAt) {
         this.eventId = eventId;
         this.soNumber = soNumber;
         this.warehouseCode = warehouseCode;
@@ -51,9 +51,9 @@ public class WorkOrederRequestNotification {
         this.status = WorkOrderRequestStatus.PENDING;
     }
 
-    public static WorkOrederRequestNotification create(String eventId, String soNumber,
+    public static WorkOrderRequestNotification create(String eventId, String soNumber,
                                                        String warehouseCode, String payload, LocalDateTime receivedAt) {
-        return new WorkOrederRequestNotification(eventId, soNumber, warehouseCode, payload, receivedAt);
+        return new WorkOrderRequestNotification(eventId, soNumber, warehouseCode, payload, receivedAt);
     }
 
     public void markDone() {

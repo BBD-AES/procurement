@@ -8,7 +8,7 @@ spring:
 
   threads:
     virtual:
-      enabled: true
+      enabled: true # Java 21 Virtual Thread 사용
 
   datasource:
     url: ${DB_ENDPOINT}
@@ -18,35 +18,31 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
         use_sql_comments: true
-        show_sql: false
         jdbc:
           time_zone: Asia/Seoul
 
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    locations: classpath:db/migration
-
-  kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka.inwoohub.com:9092}
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-
+# Swagger
 springdoc:
   swagger-ui:
     tags-sorter: alpha
     operations-sorter: alpha
-    config-url: /procurement/v3/api-docs/swagger-config
     url: /procurement/v3/api-docs
+    config-url: /procurement/v3/api-docs/swagger-config
 
 item:
-  base-url: ${ITEM_BASE_URL:http://bbd-item:8080/item}
+  base-url: ${ITEM_SERVICE_BASE_URL:http://item:8080/item}
 
 sales:
-  base-url: ${SALES_BASE_URL:http://bbd-sales:8080/sales}
+  base-url: ${SALES_SERVICE_BASE_URL:http://sales:8080/sales}
+
+logging:
+  level:
+    root: info
+    org.hibernate.SQL: debug
+    org.hibernate.orm.jdbc.bind: trace

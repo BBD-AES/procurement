@@ -11,6 +11,8 @@ import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CompletePurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
+import com.bbd.securitycore.adapter.in.annotation.RequireRole;
+import com.bbd.securitycore.domain.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -120,6 +122,7 @@ public class PurchaseOrderController {
         return ApiResponse.success("PO가 취소되었습니다.", PurchaseOrderResponse.from(po));
     }
 
+    @RequireRole({UserRole.BRANCH_MANAGER})
     @Operation(
             summary = "PO 단건 조회",
             description = "PO 상세 정보 조회 | 권한: HQ_MANAGER, HQ_STAFF"

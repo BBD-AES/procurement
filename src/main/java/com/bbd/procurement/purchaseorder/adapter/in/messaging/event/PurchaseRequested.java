@@ -13,7 +13,8 @@ public record PurchaseRequested(
 ) {
     public record Line(
             String sku,
-            int quantity
+            int quantity,
+            String sourcingType
     ) {
 
     }

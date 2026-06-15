@@ -17,7 +17,7 @@ public class ItemClientAdapter implements LoadItemPort {
     @Override
     public ItemResult findBySku(String sku) {
         ItemResponse response = getItem(sku);
-        return new ItemResult(response.sku(), response.partName(), response.unitPrice());
+        return new ItemResult(response.sku(), response.partName(), response.unitPrice(), response.sourcingType());
     }
 
     private ItemResponse getItem(String sku) {

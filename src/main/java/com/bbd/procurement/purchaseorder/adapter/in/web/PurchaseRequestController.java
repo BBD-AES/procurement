@@ -2,7 +2,7 @@ package com.bbd.procurement.purchaseorder.adapter.in.web;
 
 import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseRequestNotificationResponse;
-import com.bbd.procurement.purchaseorder.application.service.PurchaseRequestNotificationService;
+import com.bbd.procurement.purchaseorder.application.port.in.GetPurchaseRequestNotificationQuery;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PurchaseRequestController {
 
-    private final PurchaseRequestNotificationService purchaseRequestNotificationService;
+    private final GetPurchaseRequestNotificationQuery getPurchaseRequestNotificationQuery;
     private final ObjectMapper objectMapper;
 
     @Operation(
@@ -28,7 +28,7 @@ public class PurchaseRequestController {
     )
     @GetMapping
     public ApiResponse<List<PurchaseRequestNotificationResponse>> list() {
-        List<PurchaseRequestNotificationResponse> result = purchaseRequestNotificationService.list().stream()
+        List<PurchaseRequestNotificationResponse> result = getPurchaseRequestNotificationQuery.list().stream()
                 .map(n ->
                 PurchaseRequestNotificationResponse.from(n, objectMapper))
                 .toList();

@@ -5,9 +5,11 @@ import com.bbd.procurement.global.error.ErrorCode;
 import com.bbd.procurement.purchaseorder.application.port.out.LoadSalesOrderPort;
 import com.bbd.procurement.purchaseorder.application.port.out.result.SalesOrderResult;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class SalesClientAdapter implements LoadSalesOrderPort {
@@ -16,7 +18,9 @@ public class SalesClientAdapter implements LoadSalesOrderPort {
 
     @Override
     public SalesOrderResult findBySoNumber(String soNumber) {
+        log.info("⭐️ findBySoNumber 시작하기!!");
         SalesOrderResponse response = getSalesOrder(soNumber);
+        log.info("⭐️ findBySoNumber 끝내기!!");
         return toResult(response);
     }
 
@@ -26,6 +30,7 @@ public class SalesClientAdapter implements LoadSalesOrderPort {
         } catch (HttpClientErrorException.NotFound e) {
             throw new ApiException(ErrorCode.SO_NOT_FOUND);
         } catch (Exception e) {
+            log.info(e.getMessage());
             throw new ApiException(ErrorCode.SALES_SERVICE_ERROR);
         }
     }

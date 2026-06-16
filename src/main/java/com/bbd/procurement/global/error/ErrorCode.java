@@ -35,7 +35,13 @@ public enum ErrorCode {
 
     // Sales
     SO_NOT_FOUND(HttpStatus.NOT_FOUND, "S001", "해당 번호의 SO를 찾을 수 없습니다."),
-    SALES_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S002", "Sales 서비스 호출에 실패했습니다.");
+    SALES_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "S002", "Sales 서비스 호출에 실패했습니다."),
+
+    // workOrder
+    WORK_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "W001", "작업지시를 찾을 수 없습니다."),
+    WORK_ORDER_INVALID_STATE_TRANSITION(HttpStatus.CONFLICT, "W002", "허용되지 않는 작업지시 상태 전이입니다."),
+    WORK_ORDER_LINE_REQUIRED(HttpStatus.BAD_REQUEST, "W003", "작업지시에 최소 1개 이상의 라인이 필요합니다."),
+    WORK_ORDER_LINE_INVALID(HttpStatus.BAD_REQUEST, "W004", "작업지시 라인 항목이 올바르지 않습니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

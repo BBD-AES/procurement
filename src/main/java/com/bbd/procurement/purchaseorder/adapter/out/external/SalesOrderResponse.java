@@ -1,35 +1,41 @@
 package com.bbd.procurement.purchaseorder.adapter.out.external;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record SalesOrderResponse(
-        @JsonProperty("so_number") String soNumber,
-        @JsonProperty("from_warehouse_code") String fromWarehouseCode,
-        @JsonProperty("from_warehouse_name") String fromWarehouseName,
-        @JsonProperty("to_wareohouse_code") String toWarehouseCode,
-        @JsonProperty("to_warehouse_name") String toWarehouseName,
+        String soNumber,
+        String fromWarehouseCode,
+        String fromWarehouseName,
+        String toWarehouseCode,
+        String toWarehouseName,
         String status,
         String priority,
-        @JsonProperty("requested_by") String requestedBy,
-        @JsonProperty("approved_by") String approvedBy,
-        @JsonProperty("received_by") String receivedBy,
-        @JsonProperty("canceled_by") String canceledBy,
-        @JsonProperty("requested_at") String requestedAt,
-        @JsonProperty("approved_at") String approvedAt,
-        @JsonProperty("canceled_at") String canceledAt,
-        @JsonProperty("received_at") String receivedAt,
-        @JsonProperty("total_amount") long totalAmount,
+        String requestedBy,
+        String approvedBy,
+        String receivedBy,
+        String canceledBy,
+        String requestedAt,
+        String approvedAt,
+        String canceledAt,
+        String receivedAt,
+        String rejectedReason,
+        long totalAmount,
         String note,
         List<Line> lines
 ) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public record Line(
-            @JsonProperty("line_no") int lineNo,
+            int lineNo,
             String sku,
-            @JsonProperty("name_snapshot") String nameSnapshot,
-            @JsonProperty("unit_price_snapshot") int unitPriceSnapshot,
-            int quantity
+            String nameSnapshot,
+            int unitPriceSnapshot,
+            int quantity,
+            Integer reservedQuantity,
+            String fulfillmentSource,
+            String fromWarehouseCode
     ) {
     }
 }

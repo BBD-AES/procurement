@@ -15,13 +15,16 @@ import com.bbd.procurement.workorder.application.port.in.command.CompleteWorkOrd
 import com.bbd.procurement.workorder.application.port.in.command.CreateWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.WorkOrderLineItem;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderPort;
+import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderRequestNotificationPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.WorkOrderNumberGeneratorPort;
 import com.bbd.procurement.workorder.domain.WorkOrder;
 import com.bbd.procurement.workorder.domain.WorkOrderLine;
+import com.bbd.procurement.workorder.domain.WorkOrderRequestNotification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -42,6 +45,7 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     private final LoadItemPort loadItemPort;
     private final SaveOutboxEventPort saveOutboxEventPort;
     private final ObjectMapper objectMapper;
+    private final LoadWorkOrderRequestNotificationPort loadWorkOrderRequestNotificationPort;
 
     @Override
     @Transactional
@@ -52,7 +56,9 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
         WorkOrder workOrder = WorkOrder.create(
                 number, command.soNumber(), command.warehouseCode(), lines, command.createdBy()
         );
-        return saveWorkOrderPort.save(workOrder);
+        WorkOrder saved = saveWorkOrderPort.save(workOrder);
+        markRequestNotificationDone(saved.getSoNumber());
+        return saved;
     }
 
     @Override
@@ -141,5 +147,14 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
                 LocalDateTime.now()
         );
         saveOutboxEventPort.save(outboxEvent);
+    }
+
+    private void markRequestNotificationDone(String soNumber) {
+        if (!StringUtils.hasText(soNumber)) {
+            return;
+        }
+
+        loadWorkOrderRequestNotificationPort.findPendingBySoNumber(soNumber)
+                .forEach(WorkOrderRequestNotification::markDone);
     }
 }

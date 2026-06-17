@@ -8,4 +8,6 @@ public interface LoadWorkOrderRequestNotificationPort {
 
     List<WorkOrderRequestNotification> findAllOrderByReceivedAtDesc();
 
+    List<WorkOrderRequestNotification> findPendingBySoNumber(String soNumber);
+
 }

@@ -28,6 +28,7 @@ public class ItemClientAdapter implements LoadItemPort {
         } catch (HttpClientErrorException.NotFound e) {
             throw new ApiException(ErrorCode.ITEM_NOT_FOUND);
         } catch (Exception e) {
+            log.error("Item 서비스 호출 실패 sku={}", sku, e);
             log.info( "⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️ {} ⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️⭐️", e.getMessage());
             throw new ApiException(ErrorCode.ITEM_SERVICE_ERROR);
         }

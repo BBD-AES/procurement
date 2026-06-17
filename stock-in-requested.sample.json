@@ -1,0 +1,11 @@
+{
+  "eventId": "277bdb52-3b42-4aa5-b708-7787dbf38a93",
+  "source": "procurement",
+  "eventType": "STOCK_IN_REQUESTED",
+  "occurredAt": "2026-06-17T08:07:44Z",
+  "poNumber": "PO-2026-000001",
+  "soNumber": "SO-2026-0001",
+  "lines": [
+    { "sku": "SKU-001", "quantity": 10, "warehouseCode": "WH-01", "unitPrice": 5000 }
+  ]
+}

@@ -1,8 +1,10 @@
 package com.bbd.procurement.purchaseorder.adapter.out.external;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public record ItemResponse(
         String sku,
-        String partName,
+        @JsonProperty("name") String partName,
         int unitPrice,
         String sourcingType
 ) {

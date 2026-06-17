@@ -1,5 +1,6 @@
 package com.bbd.procurement.workorder.adapter.out.persistence;
 
+import com.bbd.procurement.workorder.adapter.out.persistence.repository.WorkOrderJpaRepository;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderPort;
 import com.bbd.procurement.workorder.domain.WorkOrder;

@@ -57,13 +57,13 @@ public class WorkOrder extends BaseTimeEntity {
         this.workOrderNumber = workOrderNumber;
         this.soNumber = soNumber;
         this.warehouseCode = warehouseCode;
-        this.completedBy = createdBy;
+        this.createdBy = createdBy;
         this.status = WorkOrderStatus.PLANNED;
         this.totalAmount = BigDecimal.ZERO;
     }
 
     public static WorkOrder create(String workOrderNumber, String soNumber, String warehouseCode, List<WorkOrderLine> initialLines, String createdBy) {
-        validateRequired(workOrderNumber, soNumber, workOrderNumber, createdBy);
+        validateRequired(workOrderNumber, soNumber, warehouseCode, createdBy);
 
         WorkOrder wo = new WorkOrder(workOrderNumber, soNumber, warehouseCode, createdBy);
 
@@ -119,7 +119,7 @@ public class WorkOrder extends BaseTimeEntity {
     }
 
     private static void validateRequired(String workOrderNumber, String soNumber, String warehouseCode, String createdBy) {
-        if (!StringUtils.hasText(workOrderNumber) || !workOrderNumber.matches("^WO-\\\\d{4}-\\\\d{6}$")) {
+        if (!StringUtils.hasText(workOrderNumber) || !workOrderNumber.matches("^WO-\\d{4}-\\d{6}$")) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }
         if (!StringUtils.hasText(soNumber)

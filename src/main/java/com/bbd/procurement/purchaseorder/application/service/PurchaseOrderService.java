@@ -6,16 +6,14 @@ import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.command.*;
 import com.bbd.procurement.purchaseorder.application.port.out.*;
 import com.bbd.procurement.purchaseorder.application.port.out.result.ItemResult;
-import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
-import com.bbd.procurement.purchaseorder.domain.PurchaseOrderChangeType;
-import com.bbd.procurement.purchaseorder.domain.PurchaseOrderHistory;
-import com.bbd.procurement.purchaseorder.domain.PurchaseOrderLine;
+import com.bbd.procurement.purchaseorder.domain.*;
 import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
@@ -46,6 +44,7 @@ public class PurchaseOrderService implements
     private final LoadItemPort loadItemPort;
     private final SavePurchaseOrderHistoryPort savePurchaseOrderHistoryPort;
     private final LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
+    private final LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
 
     @Override
     @Transactional
@@ -65,6 +64,7 @@ public class PurchaseOrderService implements
 
         );
         PurchaseOrder saved = savePurchaseOrderPort.save(po);
+        markRequestNotificationDone(saved.getSoNumber());
         recordHistory(saved, PurchaseOrderChangeType.CREATED, null, command.createdBy());
         return saved;
     }
@@ -221,6 +221,15 @@ public class PurchaseOrderService implements
         );
 
         saveOutboxEventPort.save(outboxEvent);
+    }
+
+    private void markRequestNotificationDone(String soNumber) {
+        if (!StringUtils.hasText(soNumber)) {
+            return;
+        }
+
+        loadPurchaseRequestNotificationPort.findPendingBySoNumber(soNumber)
+                .forEach(PurchaseRequestNotification::markDone);
     }
 }
 

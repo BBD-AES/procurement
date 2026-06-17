@@ -8,4 +8,6 @@ public interface LoadPurchaseRequestNotificationPort {
 
     List<PurchaseRequestNotification> findAllOrderByReceivedAtDesc();
 
+    List<PurchaseRequestNotification> findPendingBySoNumber(String soNumber);
+
 }

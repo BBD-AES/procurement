@@ -1,4 +1,4 @@
-package com.bbd.procurement.workorder.adapter.out.persistence;
+package com.bbd.procurement.workorder.adapter.out.persistence.repository;
 
 import com.bbd.procurement.workorder.domain.WorkOrder;
 import org.springframework.data.jpa.repository.JpaRepository;

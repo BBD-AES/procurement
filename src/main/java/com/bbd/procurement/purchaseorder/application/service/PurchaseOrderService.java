@@ -64,7 +64,7 @@ public class PurchaseOrderService implements
 
         );
         PurchaseOrder saved = savePurchaseOrderPort.save(po);
-        markRequestNotificationDone(saved.getPoNumber());
+        markRequestNotificationDone(saved.getSoNumber());
         recordHistory(saved, PurchaseOrderChangeType.CREATED, null, command.createdBy());
         return saved;
     }

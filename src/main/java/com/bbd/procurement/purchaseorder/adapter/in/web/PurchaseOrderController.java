@@ -11,6 +11,8 @@ import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CompletePurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
+import com.bbd.securitycore.adapter.in.annotation.RequireRole;
+import com.bbd.securitycore.domain.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,6 +44,7 @@ public class PurchaseOrderController {
             summary = "PO 작성",
             description = "PO 신규 작성 | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PurchaseOrderResponse> register(
@@ -58,6 +61,7 @@ public class PurchaseOrderController {
             summary = "PO 헤더 수정",
             description = "DRAFT 상태의 PO 헤더 정보 수정 | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @PatchMapping("/{poNumber}")
     public ApiResponse<PurchaseOrderResponse> updateHeader(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
@@ -74,6 +78,7 @@ public class PurchaseOrderController {
             summary = "PO 라인 교체" ,
             description = "DRAFT 상태의 PO 라인 전체 교체 | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @PutMapping("/{poNumber}/lines")
     public ApiResponse<PurchaseOrderResponse> updateLines(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
@@ -90,6 +95,7 @@ public class PurchaseOrderController {
             summary = "PO 완료",
             description = "DRAFT 상태 PO 완료 처리(DRAFT -> RECEIVED) | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole(UserRole.HQ_MANAGER)
     @PostMapping("/{poNumber}/complete")
     public ApiResponse<PurchaseOrderResponse> complete(
             @Parameter(description = "PO번호", example = "PO-2026-000001")
@@ -107,6 +113,7 @@ public class PurchaseOrderController {
             summary = "PO 취소",
             description = "DRAFT 상태 PO 취소 처리 | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @PostMapping("/{poNumber}/cancel")
     public ApiResponse<PurchaseOrderResponse> cancel(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
@@ -124,6 +131,7 @@ public class PurchaseOrderController {
             summary = "PO 단건 조회",
             description = "PO 상세 정보 조회 | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping("/{poNumber}")
     public ApiResponse<PurchaseOrderResponse> get(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
@@ -139,6 +147,7 @@ public class PurchaseOrderController {
             summary = "PO 목록 조회",
             description = "전체 PO 요약 목록 조회 |  권한: HQ_MANAGER,HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping
     public ApiResponse<List<PurchaseOrderSummaryResponse>> list() {
         List<PurchaseOrderSummaryResponse> result =
@@ -152,6 +161,7 @@ public class PurchaseOrderController {
             summary = "PO 변경 이력 조회",
             description = "PO의 생성·수정·완료·취소 이력을 시간순으로 조회 | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping("/{poNumber}/history")
     public ApiResponse<List<PurchaseOrderHistoryResponse>> getHistory(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")

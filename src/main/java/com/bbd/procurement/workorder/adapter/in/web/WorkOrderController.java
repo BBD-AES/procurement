@@ -9,6 +9,8 @@ import com.bbd.procurement.workorder.application.port.in.GetWorkOrderQuery;
 import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.command.CompleteWorkOrderCommand;
 import com.bbd.procurement.workorder.domain.WorkOrder;
+import com.bbd.securitycore.adapter.in.annotation.RequireRole;
+import com.bbd.securitycore.domain.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -35,6 +37,7 @@ public class WorkOrderController {
             description = "생산 요청 알림 기반 작업 지시 생성 (PlANNED)"
     )
     @PostMapping
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<WorkOrderResponse> create(
             @Parameter(description = "작업자 사번")
@@ -49,6 +52,7 @@ public class WorkOrderController {
             summary = "작업 지시 착수",
             description = "PLANNED -> IN_PRODUCTION"
     )
+    @RequireRole(UserRole.HQ_MANAGER)
     @PostMapping("/{workOrderNumber}/start")
     public ApiResponse<WorkOrderResponse> start(
             @PathVariable String workOrderNumber
@@ -61,6 +65,7 @@ public class WorkOrderController {
             summary = "작업 지시 완료",
             description = "IN_PRODUCTION -> COMPLETED + StockInRequested 발행"
     )
+    @RequireRole(UserRole.HQ_MANAGER)
     @PostMapping("/{workOrderNumber}/complete")
     public ApiResponse<WorkOrderResponse> complete(
             @Parameter(description = "작업 지시 번호", example = "WO-2026-000001")
@@ -72,6 +77,7 @@ public class WorkOrderController {
     }
 
     @Operation(summary = "작업 지시 단건 조회")
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping("/{workOrderNumber}")
     public ApiResponse<WorkOrderResponse> get(
             @Parameter(description = "작업 지시 번호", example = "WO-2026-000001")
@@ -82,6 +88,7 @@ public class WorkOrderController {
     }
 
     @Operation(summary = "작업 지시 목록 조회")
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping
     public ApiResponse<List<WorkOrderResponse>> list() {
         List<WorkOrderResponse> result = getWorkOrderQuery.list().stream()

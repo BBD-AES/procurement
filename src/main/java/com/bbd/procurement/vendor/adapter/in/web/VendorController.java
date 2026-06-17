@@ -8,6 +8,8 @@ import com.bbd.procurement.vendor.adapter.in.web.response.VendorResponse;
 import com.bbd.procurement.vendor.adapter.in.web.response.VendorSummaryResponse;
 import com.bbd.procurement.vendor.application.port.in.*;
 import com.bbd.procurement.vendor.domain.Vendor;
+import com.bbd.securitycore.adapter.in.annotation.RequireRole;
+import com.bbd.securitycore.domain.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ public class VendorController {
             summary = "공급사 등록",
             description = "신규 공급사를 등록 | 권한: HQ_MANAGER"
     )
+    @RequireRole(UserRole.HQ_MANAGER)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<VendorResponse> register(
@@ -46,6 +49,7 @@ public class VendorController {
             summary = "공급사 수정",
             description = "기존 공급사 정보를 수정 | 권한 : HQ_MANAGER"
     )
+    @RequireRole(UserRole.HQ_MANAGER)
     @PatchMapping("/{code}")
     public ApiResponse<VendorResponse> update(
             @PathVariable String code,
@@ -59,6 +63,7 @@ public class VendorController {
             summary = "공급사 활성/비활성 전환",
             description = "공급사의 활성 상태를 변경 | 권한 : HQ_MANAGER"
     )
+    @RequireRole(UserRole.HQ_MANAGER)
     @PatchMapping("/{code}/active")
     public ApiResponse<VendorResponse> changeActivation(
             @PathVariable String code,
@@ -72,6 +77,7 @@ public class VendorController {
             summary = "공급사 단건 조회",
             description = "공급사 상세 정보를 조회 | 권한 : HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping("/{code}")
     public ApiResponse<VendorResponse> get(@PathVariable String code) {
         Vendor vendor = getVendorQuery.getByCode(code);
@@ -82,6 +88,7 @@ public class VendorController {
             summary = "공급사 목록 조회",
             description = "전체 공급사 요약 목록을 조회 | 권한 : HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping
     public ApiResponse<List<VendorSummaryResponse>> list() {
         List<VendorSummaryResponse> result = listVendorQuery.list().stream()

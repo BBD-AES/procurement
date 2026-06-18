@@ -15,12 +15,16 @@ spring:
         base-url: ${USER_SERVICE_BASE_URL:http://localhost:8081/user}
       bbd-item-service:
         base-url: ${ITEM_SERVICE_BASE_URL:http://localhost:8082/item}
+        connect-timeout: 2s
+        read-timeout: 5s
       bbd-inventory-service:
         base-url: ${INVENTORY_SERVICE_BASE_URL:http://localhost:8083/inventory}
       bbd-procurement-service:
         base-url: ${PROCUREMENT_SERVICE_BASE_URL:http://localhost:8084/procurement}
       bbd-sales-service:
         base-url: ${SALES_SERVICE_BASE_URL:http://localhost:8085/sales}
+        connect-timeout: 2s
+        read-timeout: 5s
 
   data:
     redis:

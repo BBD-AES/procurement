@@ -21,7 +21,10 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -138,12 +141,24 @@ public class PurchaseOrderService implements
     }
 
     private List<PurchaseOrderLine> toLines(List<PurchaseOrderLineItem> items) {
-        if (items == null) {
+        if (items == null || items.isEmpty()) {
             return List.of();
         }
+
+        List<String> skus = items.stream()
+                .map(PurchaseOrderLineItem::sku)
+                .distinct()
+                .toList();
+
+        Map<String, ItemResult> itemMap = loadItemPort.findBySkus(skus).stream()
+                .collect(Collectors.toMap(ItemResult::sku, Function.identity(), (a,b) -> a));
+
         return items.stream()
                 .map(item -> {
-                    ItemResult itemInfo = loadItemPort.findBySku(item.sku());
+                    ItemResult itemInfo = itemMap.get(item.sku());
+                    if (itemInfo == null) {
+                        throw new ApiException(ErrorCode.ITEM_NOT_FOUND);
+                    }
                     return PurchaseOrderLine.create(
                             item.lineOrder(),
                             item.sku(),

@@ -29,7 +29,7 @@ public record RegisterPurchaseOrderRequest(
         @Valid
         List<PurchaseOrderLineItemRequest> lines
 ) {
-    public RegisterPurchaseOrderCommand toCommand(String createdBy) {
+    public RegisterPurchaseOrderCommand toCommand(Long createdBy) {
         List<PurchaseOrderLineItem> items = lines == null
                 ? List.of()
                 :

@@ -41,10 +41,10 @@ public class WorkOrder extends BaseTimeEntity {
     private BigDecimal totalAmount;
 
     @Column(name = "created_by", nullable = false, length = 20, updatable = false)
-    private String createdBy;
+    private Long createdBy;
 
     @Column(name = "completed_by", length = 20)
-    private String completedBy;
+    private Long completedBy;
 
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
@@ -53,7 +53,7 @@ public class WorkOrder extends BaseTimeEntity {
     @OrderBy("lineOrder ASC")
     private List<WorkOrderLine> lines = new ArrayList<>();
 
-    private WorkOrder(String workOrderNumber, String soNumber, String warehouseCode, String createdBy) {
+    private WorkOrder(String workOrderNumber, String soNumber, String warehouseCode, Long createdBy) {
         this.workOrderNumber = workOrderNumber;
         this.soNumber = soNumber;
         this.warehouseCode = warehouseCode;
@@ -62,7 +62,7 @@ public class WorkOrder extends BaseTimeEntity {
         this.totalAmount = BigDecimal.ZERO;
     }
 
-    public static WorkOrder create(String workOrderNumber, String soNumber, String warehouseCode, List<WorkOrderLine> initialLines, String createdBy) {
+    public static WorkOrder create(String workOrderNumber, String soNumber, String warehouseCode, List<WorkOrderLine> initialLines, Long createdBy) {
         validateRequired(workOrderNumber, soNumber, warehouseCode, createdBy);
 
         WorkOrder wo = new WorkOrder(workOrderNumber, soNumber, warehouseCode, createdBy);
@@ -81,14 +81,14 @@ public class WorkOrder extends BaseTimeEntity {
         this.status = WorkOrderStatus.IN_PRODUCTION;
     }
 
-    public void markCompleted(String completedBy) {
+    public void markCompleted(Long completedBy) {
         if (this.status != WorkOrderStatus.IN_PRODUCTION) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }
         if (this.lines.isEmpty()) {
             throw new ApiException(ErrorCode.WORK_ORDER_LINE_REQUIRED);
         }
-        if (!StringUtils.hasText(completedBy)) {
+        if (completedBy == null) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }
         this.status = WorkOrderStatus.COMPLETED;
@@ -118,13 +118,13 @@ public class WorkOrder extends BaseTimeEntity {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
-    private static void validateRequired(String workOrderNumber, String soNumber, String warehouseCode, String createdBy) {
+    private static void validateRequired(String workOrderNumber, String soNumber, String warehouseCode, Long createdBy) {
         if (!StringUtils.hasText(workOrderNumber) || !workOrderNumber.matches("^WO-\\d{4}-\\d{6}$")) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }
         if (!StringUtils.hasText(soNumber)
         || !StringUtils.hasText(warehouseCode)
-        || !StringUtils.hasText(createdBy)) {
+        || createdBy == null) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }
     }

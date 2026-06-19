@@ -183,7 +183,7 @@ public class PurchaseOrderService implements
     private void recordHistory(PurchaseOrder po,
                                PurchaseOrderChangeType changeType,
                                String beforePayload,
-                               String changedBy) {
+                               Long changedBy) {
         PurchaseOrderHistory history = PurchaseOrderHistory.create(
                 po.getPoNumber(),
                 changeType,

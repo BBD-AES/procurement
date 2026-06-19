@@ -20,7 +20,7 @@ public record CreateWorkOrderRequest(
         @Valid
         List<WorkOrderLineItemRequest> lines
 ) {
-    public CreateWorkOrderCommand toCommand(String createdBy) {
+    public CreateWorkOrderCommand toCommand(Long createdBy) {
         List<WorkOrderLineItem> items = lines == null
                 ? List.of()
                 :

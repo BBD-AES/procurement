@@ -12,6 +12,7 @@ import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurch
 import com.bbd.procurement.purchaseorder.application.port.in.command.CompletePurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
 import com.bbd.securitycore.domain.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,20 +39,19 @@ public class PurchaseOrderController {
     private final GetPurchaseOrderQuery getPurchaseOrderQuery;
     private final ListPurchaseOrderQuery listPurchaseOrderQuery;
     private final GetPurchaseOrderHistoryQuery getPurchaseOrderHistoryQuery;
+    private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
     private final ObjectMapper objectMapper;
 
     @Operation(
             summary = "PO 작성",
             description = "PO 신규 작성 | 권한: HQ_MANAGER, HQ_STAFF"
     )
-    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PurchaseOrderResponse> register(
-            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
-            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId,
             @Valid @RequestBody RegisterPurchaseOrderRequest request
             ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         PurchaseOrder po = registerPurchaseOrderUseCase.register(request.toCommand(userId));
         return ApiResponse.success("구매 주문이 작성되었습니다.",
                 PurchaseOrderResponse.from(po));
@@ -66,10 +66,9 @@ public class PurchaseOrderController {
     public ApiResponse<PurchaseOrderResponse> updateHeader(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
             @PathVariable String poNumber,
-            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
-            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId,
             @Valid @RequestBody UpdatePurchaseOrderHeaderRequest request
             ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         PurchaseOrder po = updatePurchaseOrderHeaderUseCase.updateHeader(request.toCommand(poNumber, userId));
         return ApiResponse.success(PurchaseOrderResponse.from(po));
     }
@@ -83,10 +82,9 @@ public class PurchaseOrderController {
     public ApiResponse<PurchaseOrderResponse> updateLines(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
             @PathVariable String poNumber,
-            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
-            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId,
             @Valid @RequestBody UpdatePurchaseOrderLinesRequest request
             ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         PurchaseOrder po = updatePurchaseOrderLinesUseCase.updateLines(request.toCommand(poNumber, userId));
         return ApiResponse.success(PurchaseOrderResponse.from(po));
     }
@@ -99,10 +97,9 @@ public class PurchaseOrderController {
     @PostMapping("/{poNumber}/complete")
     public ApiResponse<PurchaseOrderResponse> complete(
             @Parameter(description = "PO번호", example = "PO-2026-000001")
-            @PathVariable String poNumber,
-            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
-            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId
+            @PathVariable String poNumber
     ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         PurchaseOrder po = completePurchaseOrderUseCase.complete(
                 new CompletePurchaseOrderCommand(poNumber, userId)
         );
@@ -117,10 +114,9 @@ public class PurchaseOrderController {
     @PostMapping("/{poNumber}/cancel")
     public ApiResponse<PurchaseOrderResponse> cancel(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
-            @PathVariable String poNumber,
-            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
-            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId
+            @PathVariable String poNumber
     ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         PurchaseOrder po = cancelPurchaseOrderUseCase.cancel(
                 new CancelPurchaseOrderCommand(poNumber, userId)
         );
@@ -135,9 +131,7 @@ public class PurchaseOrderController {
     @GetMapping("/{poNumber}")
     public ApiResponse<PurchaseOrderResponse> get(
             @Parameter(description = "PO 번호", example = "PO-2026-000001")
-            @PathVariable String poNumber,
-            @Parameter(description = "작업자 사번 (인증 도입 전 임시 헤더)")
-            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId
+            @PathVariable String poNumber
     ) {
         PurchaseOrder po = getPurchaseOrderQuery.getByPoNumber(poNumber);
         return ApiResponse.success(PurchaseOrderResponse.from(po));

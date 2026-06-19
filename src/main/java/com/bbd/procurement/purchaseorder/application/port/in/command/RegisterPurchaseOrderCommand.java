@@ -10,6 +10,6 @@ public record RegisterPurchaseOrderCommand(
         LocalDate expectedArrival,
         String note,
         List<PurchaseOrderLineItem> lines,
-        String createdBy
+        Long createdBy
 ) {
 }

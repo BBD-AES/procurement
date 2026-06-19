@@ -9,6 +9,6 @@ public record UpdatePurchaseOrderHeaderCommand(
         String soNumber,
         LocalDate expectedArrival,
         String note,
-        String updatedBy
+        Long updatedBy
 ) {
 }

@@ -23,7 +23,7 @@ public record UpdatePurchaseOrderHeaderRequest(
 
         String note
 ) {
-    public UpdatePurchaseOrderHeaderCommand toCommand(String poNumber, String updatedBy) {
+    public UpdatePurchaseOrderHeaderCommand toCommand(String poNumber, Long updatedBy) {
         return new UpdatePurchaseOrderHeaderCommand(
                 poNumber, vendorCode, warehouseCode, soNumber, expectedArrival, note, updatedBy
         );

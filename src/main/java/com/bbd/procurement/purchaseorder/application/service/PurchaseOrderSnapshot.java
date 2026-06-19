@@ -17,8 +17,8 @@ public record PurchaseOrderSnapshot(
         BigDecimal totalAmount,
         LocalDate expectedArrival,
         String note,
-        String createdBy,
-        String receivedBy,
+        Long createdBy,
+        Long receivedBy,
         LocalDateTime receivedAt,
         List<LineSnapshot> lines
 ) {

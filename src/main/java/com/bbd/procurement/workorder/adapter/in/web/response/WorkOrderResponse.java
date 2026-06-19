@@ -13,8 +13,8 @@ public record WorkOrderResponse(
         String warehouseCode,
         WorkOrderStatus status,
         BigDecimal totalAmount,
-        String createdBy,
-        String completedBy,
+        Long createdBy,
+        Long completedBy,
         LocalDateTime createdAt,
         LocalDateTime completedAt,
         List<WorkOrderLineResponse> lines

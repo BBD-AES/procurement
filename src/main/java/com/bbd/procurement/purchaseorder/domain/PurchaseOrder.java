@@ -49,10 +49,10 @@ public class PurchaseOrder extends BaseTimeEntity {
     private String note;
 
     @Column(name = "created_by", nullable = false, length = 255, updatable = false)
-    private String createdBy;
+    private Long createdBy;
 
     @Column(name = "received_by", length = 255)
-    private String receivedBy;
+    private Long receivedBy;
 
     @Column(name = "received_at")
     private LocalDateTime receivedAt;
@@ -65,7 +65,7 @@ public class PurchaseOrder extends BaseTimeEntity {
     private List<PurchaseOrderLine> lines = new ArrayList<>();
 
     private PurchaseOrder(String poNumber, String vendorCode,
-                          String warehouseCode, String soNumber, LocalDate expectedArrival, String note, String createdBy) {
+                          String warehouseCode, String soNumber, LocalDate expectedArrival, String note, Long createdBy) {
         this.poNumber = poNumber;
         this.vendorCode = vendorCode;
         this.warehouseCode = warehouseCode;
@@ -79,7 +79,7 @@ public class PurchaseOrder extends BaseTimeEntity {
 
     public static PurchaseOrder create(String poNumber, String vendorCode,
                                        String warehouseCode, String soNumber, LocalDate expectedArrival, String note,
-                                       List<PurchaseOrderLine> initialLines, String createdBy) {
+                                       List<PurchaseOrderLine> initialLines, Long createdBy) {
         validateRequired(poNumber, vendorCode, warehouseCode, createdBy);
         PurchaseOrder po = new PurchaseOrder(poNumber, vendorCode, warehouseCode, soNumber ,expectedArrival, note, createdBy);
 
@@ -109,7 +109,7 @@ public class PurchaseOrder extends BaseTimeEntity {
         recalculateTotal();
     }
 
-    public void markReceived(String receivedBy) {
+    public void markReceived(Long receivedBy) {
         if (this.status == PurchaseOrderStatus.RECEIVED) {
             throw new ApiException(ErrorCode.PO_ALREADY_RECEIVED);
         }
@@ -119,7 +119,7 @@ public class PurchaseOrder extends BaseTimeEntity {
         if (this.lines.isEmpty()) {
             throw new ApiException(ErrorCode.PO_LINE_REQUIRED);
         }
-        if (!StringUtils.hasText(receivedBy)) {
+        if (receivedBy == null) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
         }
         this.status = PurchaseOrderStatus.RECEIVED;
@@ -159,14 +159,14 @@ public class PurchaseOrder extends BaseTimeEntity {
         }
     }
 
-    private static void validateRequired(String poNumber, String vendorCode, String warehouseCode, String createdBy) {
+    private static void validateRequired(String poNumber, String vendorCode, String warehouseCode, Long createdBy) {
         if (!StringUtils.hasText(poNumber) ||
                 !poNumber.matches("^PO-\\d{4}-\\d{6}$")) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
         }
         if (!StringUtils.hasText(vendorCode)
                 || !StringUtils.hasText(warehouseCode)
-                || !StringUtils.hasText(createdBy)) {
+                || createdBy == null) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
         }
     }

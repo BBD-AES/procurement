@@ -10,6 +10,7 @@ import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.command.CompleteWorkOrderCommand;
 import com.bbd.procurement.workorder.domain.WorkOrder;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
 import com.bbd.securitycore.domain.UserRole;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -31,6 +32,7 @@ public class WorkOrderController {
     private final StartWorkOrderUseCase startWorkOrderUseCase;
     private final CompleteWorkOrderUseCase completeWorkOrderUseCase;
     private final GetWorkOrderQuery getWorkOrderQuery;
+    private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
     @Operation(
             summary = "작업지시 생성",
@@ -40,10 +42,9 @@ public class WorkOrderController {
     @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<WorkOrderResponse> create(
-            @Parameter(description = "작업자 사번")
-            @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId,
             @Valid @RequestBody CreateWorkOrderRequest request
             ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         WorkOrder wo = createWorkOrderUseCase.create(request.toCommand(userId));
         return ApiResponse.success("작업 지시가 생성되었습니다.", WorkOrderResponse.from(wo));
     }
@@ -69,9 +70,9 @@ public class WorkOrderController {
     @PostMapping("/{workOrderNumber}/complete")
     public ApiResponse<WorkOrderResponse> complete(
             @Parameter(description = "작업 지시 번호", example = "WO-2026-000001")
-            @PathVariable String workOrderNumber,
-            @Parameter(description = "작업자 사번") @RequestHeader(value = "X-User-Id", defaultValue = "SYSTEM") String userId
+            @PathVariable String workOrderNumber
     ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         WorkOrder workOrder = completeWorkOrderUseCase.complete(new CompleteWorkOrderCommand(workOrderNumber, userId));
         return ApiResponse.success("작업 지시가 완료되었습니다.", WorkOrderResponse.from(workOrder));
     }

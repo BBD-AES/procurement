@@ -31,7 +31,7 @@ public class PurchaseOrderHistory {
     private String afterPayload;
 
     @Column(name = "changed_by", nullable = false, length = 20, updatable = false)
-    private String changedBy;
+    private Long changedBy;
 
     @Column(name = "changed_at", nullable = false, updatable = false)
     private LocalDateTime changedAt;
@@ -40,7 +40,7 @@ public class PurchaseOrderHistory {
                                  PurchaseOrderChangeType changeType,
                                  String beforePayload,
                                  String afterPayload,
-                                 String changedBy) {
+                                 Long changedBy) {
         this.poNumber = poNumber;
         this.changeType = changeType;
         this.beforePayload = beforePayload;
@@ -53,7 +53,7 @@ public class PurchaseOrderHistory {
                                               PurchaseOrderChangeType changeType,
                                               String beforePayload,
                                               String afterPayload,
-                                              String changedBy) {
+                                              Long changedBy) {
         return new PurchaseOrderHistory(poNumber, changeType, beforePayload, afterPayload, changedBy);
     }
 

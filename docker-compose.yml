@@ -17,5 +17,42 @@ services:
       timeout: 5s
       retries: 10
 
+  # 단일 노드 Kafka (KRaft 모드, 주키퍼 불필요)
+  kafka:
+    image: apache/kafka:3.9.0
+    container_name: procurement-kafka
+    ports:
+      - "9092:9092"      # 호스트(로컬에서 실행하는 앱)에서 접속하는 포트
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      # HOST 리스너 = 내 맥에서 도는 앱용(localhost:9092)
+      # DOCKER 리스너 = 같은 도커망의 kafka-ui용(kafka:29092)
+      KAFKA_LISTENERS: HOST://0.0.0.0:9092,DOCKER://0.0.0.0:29092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: HOST://localhost:9092,DOCKER://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: HOST:PLAINTEXT,DOCKER:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: DOCKER
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      TZ: Asia/Seoul
+
+  # 웹 UI - 토픽/메시지/컨슈머그룹을 브라우저에서 확인·발행
+  kafka-ui:
+    image: ghcr.io/kafbat/kafka-ui:latest
+    container_name: procurement-kafka-ui
+    ports:
+      - "8090:8080"      # http://localhost:8090
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    depends_on:
+      - kafka
+
 volumes:
   procurement-pgdata:

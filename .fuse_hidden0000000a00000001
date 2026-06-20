@@ -56,7 +56,6 @@ dependencies {
 
 	// kafka
 	implementation 'org.springframework.boot:spring-boot-starter-kafka'
-	testImplementation 'org.springframework.kafka:spring-kafka-test'
 
 	// security-core
 	implementation 'com.bbd:bbd-security-core:0.0.6'

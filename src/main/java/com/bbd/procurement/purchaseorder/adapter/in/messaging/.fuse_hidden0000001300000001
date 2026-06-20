@@ -11,7 +11,7 @@ public class PurchaseRequestedListener {
 
     private final HandlePurchaseRequestedUseCase handlePurchaseRequestedUseCase;
 
-    @KafkaListener(topics = "sales.purchase-requested", groupId = "${procurement.consumer.group-id:procurement-purchase}")
+    @KafkaListener(topics = "sales.purchase-requested", groupId = "procurement-purchase")
     public void onMessage(String message) {
         handlePurchaseRequestedUseCase.handle(message);
     }

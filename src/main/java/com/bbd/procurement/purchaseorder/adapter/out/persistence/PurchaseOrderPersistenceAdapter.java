@@ -26,6 +26,11 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
     }
 
     @Override
+    public Optional<PurchaseOrder> findByRequestId(String requestId) {
+        return purchaseOrderJpaRepository.findByRequestId(requestId);
+    }
+
+    @Override
     public List<PurchaseOrder> findAll() {
         return purchaseOrderJpaRepository.findAll();
     }

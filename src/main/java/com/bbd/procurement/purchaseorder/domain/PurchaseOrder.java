@@ -60,12 +60,16 @@ public class PurchaseOrder extends BaseTimeEntity {
     @Column(name = "so_number", length = 30)
     private String soNumber;
 
+    @Column(name = "request_id", length = 64, updatable = false)
+    private String requestId;
+
     @OneToMany(mappedBy = "purchaseOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineOrder ASC")
     private List<PurchaseOrderLine> lines = new ArrayList<>();
 
     private PurchaseOrder(String poNumber, String vendorCode,
-                          String warehouseCode, String soNumber, LocalDate expectedArrival, String note, Long createdBy) {
+                          String warehouseCode, String soNumber, LocalDate expectedArrival, String note, Long createdBy,
+                          String requestId) {
         this.poNumber = poNumber;
         this.vendorCode = vendorCode;
         this.warehouseCode = warehouseCode;
@@ -73,15 +77,16 @@ public class PurchaseOrder extends BaseTimeEntity {
         this.expectedArrival = expectedArrival;
         this.note = note;
         this.createdBy = createdBy;
+        this.requestId = requestId;
         this.status = PurchaseOrderStatus.DRAFT;
         this.totalAmount = BigDecimal.ZERO;
     }
 
     public static PurchaseOrder create(String poNumber, String vendorCode,
                                        String warehouseCode, String soNumber, LocalDate expectedArrival, String note,
-                                       List<PurchaseOrderLine> initialLines, Long createdBy) {
+                                       List<PurchaseOrderLine> initialLines, Long createdBy, String requestId) {
         validateRequired(poNumber, vendorCode, warehouseCode, createdBy);
-        PurchaseOrder po = new PurchaseOrder(poNumber, vendorCode, warehouseCode, soNumber ,expectedArrival, note, createdBy);
+        PurchaseOrder po = new PurchaseOrder(poNumber, vendorCode, warehouseCode, soNumber ,expectedArrival, note, createdBy, requestId);
 
         if (initialLines != null) {
             initialLines.forEach(po::attachLine);

@@ -26,6 +26,9 @@ public record RegisterPurchaseOrderRequest(
 
         String note,
 
+        @Size(max = 64, message = "requestId는 64자 이내여야 합니다.")
+        String requestId,
+
         @Valid
         List<PurchaseOrderLineItemRequest> lines
 ) {
@@ -35,7 +38,7 @@ public record RegisterPurchaseOrderRequest(
                 :
                 lines.stream().map(PurchaseOrderLineItemRequest::toCommandItem).toList();
         return new RegisterPurchaseOrderCommand(
-                vendorCode, warehouseCode, soNumber, expectedArrival, note, items, createdBy
+                vendorCode, warehouseCode, soNumber, expectedArrival, note, items, createdBy, requestId
         );
     }
 }

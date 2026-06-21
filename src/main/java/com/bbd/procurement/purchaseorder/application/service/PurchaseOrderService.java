@@ -11,6 +11,7 @@ import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -22,6 +23,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -52,24 +54,41 @@ public class PurchaseOrderService implements
     @Override
     @Transactional
     public PurchaseOrder register(RegisterPurchaseOrderCommand command) {
-        String poNumber = purchaseOrderNumberGeneratorPort.generate();
-        List<PurchaseOrderLine> lines = toLines(command.lines());
+        // 멱등 사전 조회: 동일 requestId로 이미 만든 PO가 있으면 새로 만들지 않고 그대로 반환(replay).
+        // (시간차 더블클릭/재시도를 여기서 흡수한다. requestId 미전송 레거시 요청은 건너뛰고 기존대로 생성.)
+        if (StringUtils.hasText(command.requestId())) {
+            Optional<PurchaseOrder> existing =
+                    loadPurchaseOrderPort.findByRequestId(command.requestId());
+            if (existing.isPresent()) {
+                return existing.get();
+            }
+        }
 
-        PurchaseOrder po = PurchaseOrder.create(
-                poNumber,
-                command.vendorCode(),
-                command.warehouseCode(),
-                command.soNumber(),
-                command.expectedArrival(),
-                command.note(),
-                lines,
-                command.createdBy()
+        try {
+            String poNumber = purchaseOrderNumberGeneratorPort.generate();
+            List<PurchaseOrderLine> lines = toLines(command.lines());
 
-        );
-        PurchaseOrder saved = savePurchaseOrderPort.save(po);
-        markRequestNotificationDone(saved.getSoNumber());
-        recordHistory(saved, PurchaseOrderChangeType.CREATED, null, command.createdBy());
-        return saved;
+            PurchaseOrder po = PurchaseOrder.create(
+                    poNumber,
+                    command.vendorCode(),
+                    command.warehouseCode(),
+                    command.soNumber(),
+                    command.expectedArrival(),
+                    command.note(),
+                    lines,
+                    command.createdBy(),
+                    command.requestId()
+            );
+            PurchaseOrder saved = savePurchaseOrderPort.save(po);
+            markRequestNotificationDone(saved.getSoNumber());
+            recordHistory(saved, PurchaseOrderChangeType.CREATED, null, command.createdBy());
+            return saved;
+        } catch (DataIntegrityViolationException e) {
+            // 거의 동시에 들어온 요청들이 사전 조회를 모두 통과한 경우(TOCTOU):
+            // DB의 uq_purchase_order_request UNIQUE 제약이 두 번째 INSERT를 거부한다.
+            // 이미 롤백 표시된 트랜잭션 안에서 재조회하지 않고 409로 응답한다.
+            throw new ApiException(ErrorCode.PO_DUPLICATE_REQUEST);
+        }
     }
 
     @Override

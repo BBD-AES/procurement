@@ -9,4 +9,6 @@ interface PurchaseOrderJpaRepository extends JpaRepository<PurchaseOrder, Long> 
 
     Optional<PurchaseOrder> findByPoNumber(String poNumber);
 
+    Optional<PurchaseOrder> findByRequestId(String requestId);
+
 }

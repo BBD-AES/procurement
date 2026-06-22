@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -22,7 +21,6 @@ import java.util.List;
 public class WorkOrderRequestController {
 
     private final GetWorkOrderRequestNotificationQuery getWorkOrderRequestNotificationQuery;
-    private final ObjectMapper objectMapper;
 
     @Operation(
             summary = "생산 요청 알림 목록 조회",
@@ -32,7 +30,7 @@ public class WorkOrderRequestController {
     @GetMapping
     public ApiResponse<List<WorkOrderRequestNotificationResponse>> list() {
         List<WorkOrderRequestNotificationResponse> result = getWorkOrderRequestNotificationQuery.list().stream()
-                .map(n -> WorkOrderRequestNotificationResponse.from(n, objectMapper))
+                .map(WorkOrderRequestNotificationResponse::from)
                 .toList();
         return ApiResponse.success(result);
     }

@@ -80,7 +80,6 @@ public class PurchaseOrderService implements
                     command.requestId()
             );
             PurchaseOrder saved = savePurchaseOrderPort.save(po);
-            markRequestNotificationDone(saved.getSoNumber());
             recordHistory(saved, PurchaseOrderChangeType.CREATED, null, command.createdBy());
             return saved;
         } catch (DataIntegrityViolationException e) {
@@ -124,6 +123,7 @@ public class PurchaseOrderService implements
         String before = snapshot(po);
         po.markReceived(command.receivedBy());
         publishStockInRequested(po);
+        applyRequestFulfillment(po);
         recordHistory(po, PurchaseOrderChangeType.COMPLETED, before, command.receivedBy());
         return po;
     }
@@ -257,13 +257,32 @@ public class PurchaseOrderService implements
         saveOutboxEventPort.save(outboxEvent);
     }
 
-    private void markRequestNotificationDone(String soNumber) {
-        if (!StringUtils.hasText(soNumber)) {
+    /**
+     * 완료(RECEIVED)된 PO 라인을 sku별 수량으로 집계해, 같은 soNumber의 활성(PENDING/PARTIAL)
+     * 요청 알림 라인에 FIFO(receivedAt 오름차순)로 충당한다. 부분 충족은 PARTIAL로 남는다.
+     */
+    private void applyRequestFulfillment(PurchaseOrder po) {
+        if (!StringUtils.hasText(po.getSoNumber())) {
             return;
         }
 
-        loadPurchaseRequestNotificationPort.findPendingBySoNumber(soNumber)
-                .forEach(PurchaseRequestNotification::markDone);
+        Map<String, Integer> orderedBySku = po.getLines().stream()
+                .collect(Collectors.groupingBy(
+                        PurchaseOrderLine::getSku,
+                        Collectors.summingInt(PurchaseOrderLine::getQuantity)));
+
+        List<PurchaseRequestNotification> active =
+                loadPurchaseRequestNotificationPort.findActiveBySoNumber(po.getSoNumber());
+
+        orderedBySku.forEach((sku, qty) -> {
+            int remaining = qty;
+            for (PurchaseRequestNotification notification : active) {
+                if (remaining <= 0) {
+                    break;
+                }
+                remaining -= notification.applyFulfillment(sku, remaining);
+            }
+        });
     }
 }
 

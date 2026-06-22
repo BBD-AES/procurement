@@ -1,9 +1,7 @@
 package com.bbd.procurement.workorder.adapter.in.web.response;
 
-import com.bbd.procurement.purchaseorder.adapter.in.messaging.event.PurchaseRequested;
 import com.bbd.procurement.workorder.domain.WorkOrderRequestNotification;
 import com.bbd.procurement.workorder.domain.WorkOrderRequestStatus;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,17 +16,21 @@ public record WorkOrderRequestNotificationResponse(
 ) {
     public record LineResponse(
             String sku,
-            int quantity
+            int requestedQty,
+            int fulfilledQty,
+            int remainingQty,
+            WorkOrderRequestStatus status
     ) {
-
     }
 
-    public static WorkOrderRequestNotificationResponse from(WorkOrderRequestNotification notification,
-                                                            ObjectMapper objectMapper) {
-        PurchaseRequested event = objectMapper.readValue(notification.getPayload(), PurchaseRequested.class);
-
-        List<LineResponse> lines = event.lines().stream()
-                .map(line -> new LineResponse(line.sku(), line.quantity()))
+    public static WorkOrderRequestNotificationResponse from(WorkOrderRequestNotification notification) {
+        List<LineResponse> lines = notification.getLines().stream()
+                .map(line -> new LineResponse(
+                        line.getSku(),
+                        line.getRequestedQty(),
+                        line.getFulfilledQty(),
+                        line.remaining(),
+                        line.getStatus()))
                 .toList();
 
         return new WorkOrderRequestNotificationResponse(

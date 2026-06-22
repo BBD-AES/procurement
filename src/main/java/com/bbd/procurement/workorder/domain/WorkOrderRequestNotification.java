@@ -7,6 +7,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "work_order_request_notification")
@@ -41,6 +43,9 @@ public class WorkOrderRequestNotification {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @OneToMany(mappedBy = "notification", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<WorkOrderRequestNotificationLine> lines = new ArrayList<>();
+
     private WorkOrderRequestNotification(String eventId, String soNumber, String warehouseCode,
                                          String payload, LocalDateTime receivedAt) {
         this.eventId = eventId;
@@ -51,12 +56,45 @@ public class WorkOrderRequestNotification {
         this.status = WorkOrderRequestStatus.PENDING;
     }
 
-    public static WorkOrderRequestNotification create(String eventId, String soNumber,
-                                                       String warehouseCode, String payload, LocalDateTime receivedAt) {
-        return new WorkOrderRequestNotification(eventId, soNumber, warehouseCode, payload, receivedAt);
+    public static WorkOrderRequestNotification create(String eventId, String soNumber, String warehouseCode,
+                                                      String payload, LocalDateTime receivedAt,
+                                                      List<WorkOrderRequestNotificationLine> lines) {
+        WorkOrderRequestNotification notification =
+                new WorkOrderRequestNotification(eventId, soNumber, warehouseCode, payload, receivedAt);
+        if (lines != null) {
+            lines.forEach(notification::attachLine);
+        }
+        return notification;
     }
 
-    public void markDone() {
-        this.status = WorkOrderRequestStatus.DONE;
+    private void attachLine(WorkOrderRequestNotificationLine line) {
+        line.assignTo(this);
+        this.lines.add(line);
+    }
+
+    public int applyFulfillment(String sku, int qty) {
+        int remaining = qty;
+        for (WorkOrderRequestNotificationLine line : lines) {
+            if (remaining <= 0) {
+                break;
+            }
+            if (line.getSku().equals(sku)) {
+                remaining -= line.applyFulfillment(remaining);
+            }
+        }
+        recomputeStatus();
+        return qty - remaining;
+    }
+
+    public void recomputeStatus() {
+        boolean allDone = lines.stream().allMatch(l -> l.getStatus() == WorkOrderRequestStatus.DONE);
+        boolean anyProgress = lines.stream().anyMatch(l -> l.getFulfilledQty() > 0);
+        if (allDone && !lines.isEmpty()) {
+            this.status = WorkOrderRequestStatus.DONE;
+        } else if (anyProgress) {
+            this.status = WorkOrderRequestStatus.PARTIAL;
+        } else {
+            this.status = WorkOrderRequestStatus.PENDING;
+        }
     }
 }

@@ -1,9 +1,7 @@
 package com.bbd.procurement.purchaseorder.adapter.in.web.response;
 
-import com.bbd.procurement.purchaseorder.adapter.in.messaging.event.PurchaseRequested;
 import com.bbd.procurement.purchaseorder.domain.PurchaseRequestNotification;
 import com.bbd.procurement.purchaseorder.domain.PurchaseRequestStatus;
-import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,15 +16,21 @@ public record PurchaseRequestNotificationResponse(
 ) {
     public record LineResponse(
             String sku,
-            int quantity
+            int requestedQty,
+            int fulfilledQty,
+            int remainingQty,
+            PurchaseRequestStatus status
     ) {
-
     }
 
-    public static PurchaseRequestNotificationResponse from(PurchaseRequestNotification notification, ObjectMapper objectMapper) {
-        PurchaseRequested event = objectMapper.readValue(notification.getPayload(), PurchaseRequested.class);
-        List<LineResponse> lines = event.lines().stream()
-                .map(line -> new LineResponse(line.sku(), line.quantity()))
+    public static PurchaseRequestNotificationResponse from(PurchaseRequestNotification notification) {
+        List<LineResponse> lines = notification.getLines().stream()
+                .map(line -> new LineResponse(
+                        line.getSku(),
+                        line.getRequestedQty(),
+                        line.getFulfilledQty(),
+                        line.remaining(),
+                        line.getStatus()))
                 .toList();
 
         return new PurchaseRequestNotificationResponse(

@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -22,7 +21,6 @@ import java.util.List;
 public class PurchaseRequestController {
 
     private final GetPurchaseRequestNotificationQuery getPurchaseRequestNotificationQuery;
-    private final ObjectMapper objectMapper;
 
     @Operation(
             summary = "발주 요청 알림 목록 조회",
@@ -32,8 +30,7 @@ public class PurchaseRequestController {
     @GetMapping
     public ApiResponse<List<PurchaseRequestNotificationResponse>> list() {
         List<PurchaseRequestNotificationResponse> result = getPurchaseRequestNotificationQuery.list().stream()
-                .map(n ->
-                PurchaseRequestNotificationResponse.from(n, objectMapper))
+                .map(PurchaseRequestNotificationResponse::from)
                 .toList();
         return ApiResponse.success(result);
     }

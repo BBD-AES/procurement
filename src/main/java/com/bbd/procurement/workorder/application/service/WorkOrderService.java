@@ -32,6 +32,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 @Service
@@ -57,7 +59,6 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
                 number, command.soNumber(), command.warehouseCode(), lines, command.createdBy()
         );
         WorkOrder saved = saveWorkOrderPort.save(workOrder);
-        markRequestNotificationDone(saved.getSoNumber());
         return saved;
     }
 
@@ -75,6 +76,7 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
         WorkOrder workOrder = findOrThrow(command.workOrderNumber());
         workOrder.markCompleted(command.completedBy());
         publishStockInRequested(workOrder);
+        applyRequestFulfillment(workOrder);
         return workOrder;
     }
 
@@ -149,12 +151,31 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
         saveOutboxEventPort.save(outboxEvent);
     }
 
-    private void markRequestNotificationDone(String soNumber) {
-        if (!StringUtils.hasText(soNumber)) {
+    /**
+     * 완료(COMPLETED)된 작업지시 라인을 sku별 수량으로 집계해, 같은 soNumber의 활성(PENDING/PARTIAL)
+     * 생산요청 알림 라인에 FIFO로 충당한다. 부분 충족은 PARTIAL로 남는다.
+     */
+    private void applyRequestFulfillment(WorkOrder workOrder) {
+        if (!StringUtils.hasText(workOrder.getSoNumber())) {
             return;
         }
 
-        loadWorkOrderRequestNotificationPort.findPendingBySoNumber(soNumber)
-                .forEach(WorkOrderRequestNotification::markDone);
+        Map<String, Integer> producedBySku = workOrder.getLines().stream()
+                .collect(Collectors.groupingBy(
+                        WorkOrderLine::getSku,
+                        Collectors.summingInt(WorkOrderLine::getQuantity)));
+
+        List<WorkOrderRequestNotification> active =
+                loadWorkOrderRequestNotificationPort.findActiveBySoNumber(workOrder.getSoNumber());
+
+        producedBySku.forEach((sku, qty) -> {
+            int remaining = qty;
+            for (WorkOrderRequestNotification notification : active) {
+                if (remaining <= 0) {
+                    break;
+                }
+                remaining -= notification.applyFulfillment(sku, remaining);
+            }
+        });
     }
 }

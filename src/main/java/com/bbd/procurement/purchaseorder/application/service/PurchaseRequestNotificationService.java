@@ -6,10 +6,12 @@ import com.bbd.procurement.purchaseorder.application.port.in.HandlePurchaseReque
 import com.bbd.procurement.purchaseorder.application.port.out.LoadPurchaseRequestNotificationPort;
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseRequestNotificationPort;
 import com.bbd.procurement.purchaseorder.domain.PurchaseRequestNotification;
+import com.bbd.procurement.purchaseorder.domain.PurchaseRequestNotificationLine;
 import com.bbd.procurement.purchaseorder.domain.SourcingType;
 import com.bbd.procurement.shared.inbox.application.port.out.ProcessedEventPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderRequestNotificationPort;
 import com.bbd.procurement.workorder.domain.WorkOrderRequestNotification;
+import com.bbd.procurement.workorder.domain.WorkOrderRequestNotificationLine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -51,14 +53,21 @@ public class PurchaseRequestNotificationService implements HandlePurchaseRequest
         LocalDateTime receivedAt = LocalDateTime.now();
 
         if (!buyLines.isEmpty()) {
+            List<PurchaseRequestNotificationLine> notificationLines = buyLines.stream()
+                    .map(line -> PurchaseRequestNotificationLine.create(line.sku(), line.quantity()))
+                    .toList();
             savePurchaseRequestNotificationPort.save(PurchaseRequestNotification.create(
-                    event.eventId(), event.soNumber(), event.warehouseCode(), serializeWith(event, buyLines), receivedAt));
+                    event.eventId(), event.soNumber(), event.warehouseCode(),
+                    serializeWith(event, buyLines), receivedAt, notificationLines));
         }
 
         if (!makeLines.isEmpty()) {
+            List<WorkOrderRequestNotificationLine> notificationLines = makeLines.stream()
+                    .map(line -> WorkOrderRequestNotificationLine.create(line.sku(), line.quantity()))
+                    .toList();
             saveWorkOrderRequestNotificationPort.save(WorkOrderRequestNotification.create(
-                    event.eventId(), event.soNumber(), event.warehouseCode(), serializeWith(event, makeLines), receivedAt
-            ));
+                    event.eventId(), event.soNumber(), event.warehouseCode(),
+                    serializeWith(event, makeLines), receivedAt, notificationLines));
         }
 
         processedEventPort.save(event.eventId());

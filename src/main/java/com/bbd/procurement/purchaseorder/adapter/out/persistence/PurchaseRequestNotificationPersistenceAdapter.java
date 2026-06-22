@@ -22,11 +22,13 @@ public class PurchaseRequestNotificationPersistenceAdapter implements SavePurcha
 
     @Override
     public List<PurchaseRequestNotification> findAllOrderByReceivedAtDesc() {
-        return purchaseRequestNotificationJpaRepository.findAllByOrderByReceivedAtDesc();
+        return purchaseRequestNotificationJpaRepository.findAllWithLinesOrderByReceivedAtDesc();
     }
 
     @Override
-    public List<PurchaseRequestNotification> findPendingBySoNumber(String soNumber) {
-        return purchaseRequestNotificationJpaRepository.findBySoNumberAndStatus(soNumber, PurchaseRequestStatus.PENDING);
+    public List<PurchaseRequestNotification> findActiveBySoNumber(String soNumber) {
+        return purchaseRequestNotificationJpaRepository.findActiveBySoNumberForUpdate(
+                soNumber,
+                List.of(PurchaseRequestStatus.PENDING, PurchaseRequestStatus.PARTIAL));
     }
 }

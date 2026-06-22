@@ -25,11 +25,13 @@ public class WorkOrderRequestNotificationPersistenceAdapter
 
     @Override
     public List<WorkOrderRequestNotification> findAllOrderByReceivedAtDesc() {
-        return workOrderRequestNotificationJpaRepository.findAllByOrderByReceivedAtDesc();
+        return workOrderRequestNotificationJpaRepository.findAllWithLinesOrderByReceivedAtDesc();
     }
 
     @Override
-    public List<WorkOrderRequestNotification> findPendingBySoNumber(String soNumber) {
-        return workOrderRequestNotificationJpaRepository.findBySoNumberAndStatus(soNumber, WorkOrderRequestStatus.PENDING);
+    public List<WorkOrderRequestNotification> findActiveBySoNumber(String soNumber) {
+        return workOrderRequestNotificationJpaRepository.findActiveBySoNumberForUpdate(
+                soNumber,
+                List.of(WorkOrderRequestStatus.PENDING, WorkOrderRequestStatus.PARTIAL));
     }
 }

@@ -49,6 +49,7 @@ public class PurchaseOrderController {
             summary = "PO 작성",
             description = "PO 신규 작성 | 권한: HQ_MANAGER, HQ_STAFF"
     )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PurchaseOrderResponse> register(

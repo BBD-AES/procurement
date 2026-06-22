@@ -11,6 +11,8 @@ import com.bbd.procurement.purchaseorder.domain.*;
 import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
+import com.bbd.procurement.vendor.application.port.out.LoadVendorPort;
+import com.bbd.procurement.vendor.domain.Vendor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -52,6 +54,7 @@ public class PurchaseOrderService implements
     private final SavePurchaseOrderHistoryPort savePurchaseOrderHistoryPort;
     private final LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
     private final LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
+    private final LoadVendorPort loadVendorPort;
 
     @Override
     @Transactional
@@ -65,6 +68,8 @@ public class PurchaseOrderService implements
                 return existing.get();
             }
         }
+
+        validateVendor(command.vendorCode());
 
         try {
             String poNumber = purchaseOrderNumberGeneratorPort.generate();
@@ -96,6 +101,9 @@ public class PurchaseOrderService implements
     @Transactional
     public PurchaseOrder updateHeader(UpdatePurchaseOrderHeaderCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        if (StringUtils.hasText(command.vendorCode())) {
+            validateVendor(command.vendorCode());
+        }
         String before = snapshot(po);
         po.updateHeader(
                 command.vendorCode(),
@@ -148,6 +156,18 @@ public class PurchaseOrderService implements
     @Override
     public List<PurchaseOrder> list() {
         return loadPurchaseOrderPort.findAll();
+    }
+
+    /**
+     * 발주 생성/헤더수정 시 공급사 통제. 존재하지 않으면 VENDOR_NOT_FOUND(V001),
+     * 거래중지(active=false) 공급사면 VENDOR_INACTIVE(V003)로 차단한다.
+     */
+    private void validateVendor(String vendorCode) {
+        Vendor vendor = loadVendorPort.findByCode(vendorCode)
+                .orElseThrow(() -> new ApiException(ErrorCode.VENDOR_NOT_FOUND));
+        if (!vendor.isActive()) {
+            throw new ApiException(ErrorCode.VENDOR_INACTIVE);
+        }
     }
 
     private PurchaseOrder findPurchaseOrderOrThrow(String poNumber) {

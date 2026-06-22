@@ -8,6 +8,7 @@ import com.bbd.procurement.purchaseorder.application.port.out.LoadPurchaseReques
 import com.bbd.procurement.purchaseorder.application.port.out.PurchaseOrderNumberGeneratorPort;
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseOrderHistoryPort;
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseOrderPort;
+import com.bbd.procurement.vendor.application.port.out.LoadVendorPort;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderLine;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderStatus;
@@ -54,6 +55,7 @@ class PurchaseOrderServicePublishTest {
     @Mock SavePurchaseOrderHistoryPort savePurchaseOrderHistoryPort;
     @Mock LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
     @Mock LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
+    @Mock LoadVendorPort loadVendorPort;
 
     @InjectMocks PurchaseOrderService sut;
 

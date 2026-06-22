@@ -3,6 +3,7 @@ package com.bbd.procurement.purchaseorder.domain;
 import com.bbd.procurement.global.entity.BaseTimeEntity;
 import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
+import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -11,10 +12,12 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Getter
 @Entity
@@ -140,6 +143,19 @@ public class PurchaseOrder extends BaseTimeEntity {
             return;
         }
         this.status = PurchaseOrderStatus.CANCELED;
+    }
+
+    public StockInRequested toStockInRequested(UUID eventId, Instant occurredAt) {
+        List<StockInRequested.Line> eventLines = this.lines.stream()
+                .map(line -> new StockInRequested.Line(
+                        line.getSku(),
+                        line.getQuantity(),
+                        this.warehouseCode,
+                        line.getUnitPrice().intValueExact()
+                ))
+                .toList();
+
+        return StockInRequested.of(eventId, occurredAt, this.poNumber, this.soNumber, eventLines);
     }
 
     public boolean isEditable() {

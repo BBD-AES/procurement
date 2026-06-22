@@ -2,6 +2,7 @@ package com.bbd.procurement.purchaseorder.application.service;
 
 import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
+import com.bbd.procurement.global.util.JsonUtil;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.command.*;
 import com.bbd.procurement.purchaseorder.application.port.out.*;
@@ -16,7 +17,6 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import tools.jackson.core.JacksonException;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -192,12 +192,8 @@ public class PurchaseOrderService implements
     }
 
     private String snapshot(PurchaseOrder po) {
-        try {
-            return objectMapper.writeValueAsString(PurchaseOrderSnapshot.from(po));
-        } catch (JacksonException e) {
-            log.error("Failed to serialize PurchaseOrderSnapshot for PO {}", po.getPoNumber(), e);
-            throw new ApiException(ErrorCode.INTERNAL_ERROR);
-        }
+        return JsonUtil.toJson(objectMapper, PurchaseOrderSnapshot.from(po),
+                "PurchaseOrderSnapshot for PO " + po.getPoNumber());
     }
 
     private void recordHistory(PurchaseOrder po,
@@ -218,30 +214,9 @@ public class PurchaseOrderService implements
         UUID eventId = UUID.randomUUID();
         Instant occurredAt = Instant.now();
 
-        List<StockInRequested.Line> lines = po.getLines().stream()
-                .map(line -> new StockInRequested.Line(
-                        line.getSku(),
-                        line.getQuantity(),
-                        po.getWarehouseCode(),
-                        line.getUnitPrice().intValueExact()
-                ))
-                .toList();
-
-        StockInRequested event = StockInRequested.of(
-                eventId,
-                occurredAt,
-                po.getPoNumber(),
-                po.getSoNumber(),
-                lines
-        );
-
-        String payload;
-        try {
-            payload = objectMapper.writeValueAsString(event);
-        } catch (JacksonException e) {
-            log.error("Failed to serialize StockInRequested for PO {}", po.getPoNumber(), e);
-            throw new ApiException(ErrorCode.INTERNAL_ERROR);
-        }
+        StockInRequested event = po.toStockInRequested(eventId, occurredAt);
+        String payload = JsonUtil.toJson(objectMapper, event,
+                "StockInRequested for PO " + po.getPoNumber());
 
         OutboxEvent outboxEvent = OutboxEvent.create(
                 StockInRequested.TOPIC,

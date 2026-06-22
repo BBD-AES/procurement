@@ -31,4 +31,10 @@ public class PurchaseRequestNotificationPersistenceAdapter implements SavePurcha
                 soNumber,
                 List.of(PurchaseRequestStatus.PENDING, PurchaseRequestStatus.PARTIAL));
     }
+
+    @Override
+    public long countPending() {
+        return purchaseRequestNotificationJpaRepository.countByStatusIn(
+                List.of(PurchaseRequestStatus.PENDING, PurchaseRequestStatus.PARTIAL));
+    }
 }

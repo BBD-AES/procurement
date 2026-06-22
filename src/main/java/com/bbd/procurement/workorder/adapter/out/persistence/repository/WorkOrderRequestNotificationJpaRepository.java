@@ -21,4 +21,6 @@ public interface WorkOrderRequestNotificationJpaRepository extends JpaRepository
             "where n.soNumber = :soNumber and n.status in :statuses order by n.receivedAt asc")
     List<WorkOrderRequestNotification> findActiveBySoNumberForUpdate(@Param("soNumber") String soNumber,
                                                                      @Param("statuses") Collection<WorkOrderRequestStatus> statuses);
+
+    long countByStatusIn(Collection<WorkOrderRequestStatus> statuses);
 }

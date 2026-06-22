@@ -10,6 +10,8 @@ import com.bbd.procurement.purchaseorder.application.port.out.LoadPurchaseReques
 import com.bbd.procurement.purchaseorder.application.port.out.PurchaseOrderNumberGeneratorPort;
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseOrderHistoryPort;
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseOrderPort;
+import com.bbd.procurement.vendor.application.port.out.LoadVendorPort;
+import com.bbd.procurement.vendor.domain.Vendor;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import org.junit.jupiter.api.DisplayName;
@@ -54,6 +56,7 @@ class PurchaseOrderServiceIdempotencyTest {
     @Mock SavePurchaseOrderHistoryPort savePurchaseOrderHistoryPort;
     @Mock LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
     @Mock LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
+    @Mock LoadVendorPort loadVendorPort;
 
     @InjectMocks PurchaseOrderService sut;
 
@@ -70,6 +73,11 @@ class PurchaseOrderServiceIdempotencyTest {
                 1L,              // createdBy
                 requestId
         );
+    }
+
+    // 검증을 통과시키기 위한 활성 공급사 픽스처(코드 형식 ^V\\d{6}$ 충족)
+    private Vendor activeVendor() {
+        return Vendor.create("V000001", "테스트공급사", null, null);
     }
 
     @Test
@@ -90,6 +98,7 @@ class PurchaseOrderServiceIdempotencyTest {
     @Test
     @DisplayName("requestId가 있고 기존 PO가 없으면 새로 생성한다")
     void requestId가_있고_기존_PO가_없으면_새로_생성한다() {
+        when(loadVendorPort.findByCode(any())).thenReturn(Optional.of(activeVendor()));
         when(loadPurchaseOrderPort.findByRequestId(REQUEST_ID)).thenReturn(Optional.empty());
         when(purchaseOrderNumberGeneratorPort.generate()).thenReturn("PO-2026-000002");
         when(savePurchaseOrderPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -105,6 +114,7 @@ class PurchaseOrderServiceIdempotencyTest {
     @Test
     @DisplayName("requestId가 없으면 사전조회 없이 기존대로 생성한다 (레거시 호환)")
     void requestId가_없으면_사전조회_없이_기존대로_생성한다() {
+        when(loadVendorPort.findByCode(any())).thenReturn(Optional.of(activeVendor()));
         when(purchaseOrderNumberGeneratorPort.generate()).thenReturn("PO-2026-000003");
         when(savePurchaseOrderPort.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -118,6 +128,7 @@ class PurchaseOrderServiceIdempotencyTest {
     @Test
     @DisplayName("동시 경합으로 UNIQUE 위반 시 409(PO_DUPLICATE_REQUEST)로 응답한다")
     void 동시경합으로_UNIQUE_위반시_409로_응답한다() {
+        when(loadVendorPort.findByCode(any())).thenReturn(Optional.of(activeVendor()));
         when(loadPurchaseOrderPort.findByRequestId(REQUEST_ID)).thenReturn(Optional.empty());
         when(purchaseOrderNumberGeneratorPort.generate()).thenReturn("PO-2026-000004");
         when(savePurchaseOrderPort.save(any()))

@@ -5,6 +5,7 @@ import com.bbd.procurement.purchaseorder.adapter.in.web.request.RegisterPurchase
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.UpdatePurchaseOrderHeaderRequest;
 import com.bbd.procurement.purchaseorder.adapter.in.web.request.UpdatePurchaseOrderLinesRequest;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderHistoryResponse;
+import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderResponseAssembler;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderResponse;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderSummaryResponse;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
@@ -21,7 +22,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -40,7 +40,7 @@ public class PurchaseOrderController {
     private final ListPurchaseOrderQuery listPurchaseOrderQuery;
     private final GetPurchaseOrderHistoryQuery getPurchaseOrderHistoryQuery;
     private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
-    private final ObjectMapper objectMapper;
+    private final PurchaseOrderResponseAssembler responseAssembler;
 
     @Operation(
             summary = "PO 작성",
@@ -163,7 +163,7 @@ public class PurchaseOrderController {
     ) {
         List<PurchaseOrderHistoryResponse> result =
                 getPurchaseOrderHistoryQuery.getHistory(poNumber).stream()
-                        .map(history -> PurchaseOrderHistoryResponse.from(history, objectMapper))
+                        .map(responseAssembler::toHistoryResponse)
                         .toList();
         return ApiResponse.success(result);
     }

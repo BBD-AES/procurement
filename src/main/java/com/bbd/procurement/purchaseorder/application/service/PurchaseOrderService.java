@@ -11,6 +11,7 @@ import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -193,9 +195,8 @@ public class PurchaseOrderService implements
         try {
             return objectMapper.writeValueAsString(PurchaseOrderSnapshot.from(po));
         } catch (JacksonException e) {
-            throw new IllegalStateException(
-                    "Failed to serialize PurchaseOrderSnapshot for PO" + po.getPoNumber(), e
-            );
+            log.error("Failed to serialize PurchaseOrderSnapshot for PO {}", po.getPoNumber(), e);
+            throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
     }
 
@@ -238,10 +239,8 @@ public class PurchaseOrderService implements
         try {
             payload = objectMapper.writeValueAsString(event);
         } catch (JacksonException e) {
-            throw new IllegalStateException(
-                    "Failed to serialize StockInRequested for PO" +
-                            po.getPoNumber(), e
-            );
+            log.error("Failed to serialize StockInRequested for PO {}", po.getPoNumber(), e);
+            throw new ApiException(ErrorCode.INTERNAL_ERROR);
         }
 
         OutboxEvent outboxEvent = OutboxEvent.create(

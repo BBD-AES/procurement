@@ -21,4 +21,6 @@ public interface PurchaseRequestNotificationJpaRepository extends JpaRepository<
             "where n.soNumber = :soNumber and n.status in :statuses order by n.receivedAt asc")
     List<PurchaseRequestNotification> findActiveBySoNumberForUpdate(@Param("soNumber") String soNumber,
                                                                     @Param("statuses") Collection<PurchaseRequestStatus> statuses);
+
+    long countByStatusIn(Collection<PurchaseRequestStatus> statuses);
 }

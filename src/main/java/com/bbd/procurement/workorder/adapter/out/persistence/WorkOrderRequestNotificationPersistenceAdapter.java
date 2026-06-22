@@ -34,4 +34,10 @@ public class WorkOrderRequestNotificationPersistenceAdapter
                 soNumber,
                 List.of(WorkOrderRequestStatus.PENDING, WorkOrderRequestStatus.PARTIAL));
     }
+
+    @Override
+    public long countPending() {
+        return workOrderRequestNotificationJpaRepository.countByStatusIn(
+                List.of(WorkOrderRequestStatus.PENDING, WorkOrderRequestStatus.PARTIAL));
+    }
 }

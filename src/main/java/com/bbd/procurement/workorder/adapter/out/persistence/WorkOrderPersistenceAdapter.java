@@ -4,10 +4,13 @@ import com.bbd.procurement.workorder.adapter.out.persistence.repository.WorkOrde
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderPort;
 import com.bbd.procurement.workorder.domain.WorkOrder;
+import com.bbd.procurement.workorder.domain.WorkOrderStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -29,6 +32,14 @@ public class WorkOrderPersistenceAdapter implements SaveWorkOrderPort, LoadWorkO
     @Override
     public List<WorkOrder> findAll() {
         return workOrderJpaRepository.findAll();
+    }
+
+    @Override
+    public Map<WorkOrderStatus, Long> countByStatus() {
+        Map<WorkOrderStatus, Long> counts = new EnumMap<>(WorkOrderStatus.class);
+        workOrderJpaRepository.countGroupByStatus()
+                .forEach(row -> counts.put(row.getStatus(), row.getCount()));
+        return counts;
     }
 
 }

@@ -7,8 +7,10 @@ import com.bbd.procurement.purchaseorder.adapter.in.web.request.UpdatePurchaseOr
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderHistoryResponse;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderResponseAssembler;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderResponse;
+import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderStatsResponse;
 import com.bbd.procurement.purchaseorder.adapter.in.web.response.PurchaseOrderSummaryResponse;
 import com.bbd.procurement.purchaseorder.application.port.in.*;
+import com.bbd.procurement.purchaseorder.application.port.in.result.ProcurementStats;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CompletePurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
@@ -39,6 +41,7 @@ public class PurchaseOrderController {
     private final GetPurchaseOrderQuery getPurchaseOrderQuery;
     private final ListPurchaseOrderQuery listPurchaseOrderQuery;
     private final GetPurchaseOrderHistoryQuery getPurchaseOrderHistoryQuery;
+    private final GetPurchaseOrderStatsQuery getPurchaseOrderStatsQuery;
     private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
     private final PurchaseOrderResponseAssembler responseAssembler;
 
@@ -121,6 +124,22 @@ public class PurchaseOrderController {
                 new CancelPurchaseOrderCommand(poNumber, userId)
         );
         return ApiResponse.success("PO가 취소되었습니다.", PurchaseOrderResponse.from(po));
+    }
+
+    @Operation(
+            summary = "발주 대시보드 집계 조회",
+            description = "PO/WO 상태별 카운트(0 포함)와 대기 발주요청/생산요청 수를 1회로 집계 | 권한: HQ_MANAGER, HQ_STAFF"
+    )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
+    @GetMapping("/stats")
+    public ApiResponse<PurchaseOrderStatsResponse> stats() {
+        ProcurementStats stats = getPurchaseOrderStatsQuery.getStats();
+        return ApiResponse.success(new PurchaseOrderStatsResponse(
+                stats.poByStatus(),
+                stats.woByStatus(),
+                stats.pendingPurchaseRequests(),
+                stats.pendingWorkOrderRequests()
+        ));
     }
 
     @Operation(

@@ -17,6 +17,7 @@ import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
 import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
 import com.bbd.securitycore.domain.UserRole;
+import com.bbd.securitycore.idempotency.Idempotent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -50,6 +51,7 @@ public class PurchaseOrderController {
             description = "PO 신규 작성 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
+    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 생성 차단). docs/idempotency-spec.md
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PurchaseOrderResponse> register(

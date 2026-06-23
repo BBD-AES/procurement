@@ -14,6 +14,7 @@ import com.bbd.procurement.workorder.domain.WorkOrder;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
 import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
 import com.bbd.securitycore.domain.UserRole;
+import com.bbd.securitycore.idempotency.Idempotent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -41,6 +42,7 @@ public class WorkOrderController {
             summary = "작업지시 생성",
             description = "생산 요청 알림 기반 작업 지시 생성 (PlANNED)"
     )
+    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 생성 차단). docs/idempotency-spec.md
     @PostMapping
     @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @ResponseStatus(HttpStatus.CREATED)

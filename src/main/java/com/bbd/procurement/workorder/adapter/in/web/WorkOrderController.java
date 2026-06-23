@@ -3,10 +3,12 @@ package com.bbd.procurement.workorder.adapter.in.web;
 import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.workorder.adapter.in.web.request.CreateWorkOrderRequest;
 import com.bbd.procurement.workorder.adapter.in.web.response.WorkOrderResponse;
+import com.bbd.procurement.workorder.application.port.in.CancelWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CompleteWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CreateWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.GetWorkOrderQuery;
 import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
+import com.bbd.procurement.workorder.application.port.in.command.CancelWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.CompleteWorkOrderCommand;
 import com.bbd.procurement.workorder.domain.WorkOrder;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
@@ -31,6 +33,7 @@ public class WorkOrderController {
     private final CreateWorkOrderUseCase createWorkOrderUseCase;
     private final StartWorkOrderUseCase startWorkOrderUseCase;
     private final CompleteWorkOrderUseCase completeWorkOrderUseCase;
+    private final CancelWorkOrderUseCase cancelWorkOrderUseCase;
     private final GetWorkOrderQuery getWorkOrderQuery;
     private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
@@ -75,6 +78,21 @@ public class WorkOrderController {
         Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         WorkOrder workOrder = completeWorkOrderUseCase.complete(new CompleteWorkOrderCommand(workOrderNumber, userId));
         return ApiResponse.success("작업 지시가 완료되었습니다.", WorkOrderResponse.from(workOrder));
+    }
+
+    @Operation(
+            summary = "작업 지시 취소",
+            description = "PLANNED/IN_PRODUCTION -> CANCELED (COMPLETED는 불가, 이미 취소면 멱등 no-op) | 권한: HQ_MANAGER, HQ_STAFF"
+    )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
+    @PostMapping("/{workOrderNumber}/cancel")
+    public ApiResponse<WorkOrderResponse> cancel(
+            @Parameter(description = "작업 지시 번호", example = "WO-2026-000001")
+            @PathVariable String workOrderNumber
+    ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
+        WorkOrder workOrder = cancelWorkOrderUseCase.cancel(new CancelWorkOrderCommand(workOrderNumber, userId));
+        return ApiResponse.success("작업 지시가 취소되었습니다.", WorkOrderResponse.from(workOrder));
     }
 
     @Operation(summary = "작업 지시 단건 조회")

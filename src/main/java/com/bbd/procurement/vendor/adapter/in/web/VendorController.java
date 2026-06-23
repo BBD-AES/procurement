@@ -10,6 +10,7 @@ import com.bbd.procurement.vendor.application.port.in.*;
 import com.bbd.procurement.vendor.domain.Vendor;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
 import com.bbd.securitycore.domain.UserRole;
+import com.bbd.securitycore.idempotency.Idempotent;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -36,12 +37,14 @@ public class VendorController {
             description = "신규 공급사를 등록 | 권한: HQ_MANAGER"
     )
     @RequireRole(UserRole.HQ_MANAGER)
+    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 생성 차단). docs/idempotency-spec.md
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<VendorResponse> register(
-            @Valid @RequestBody RegisterVendorRequest request
+            @Valid @RequestBody RegisterVendorRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
     ) {
-        Vendor vendor = registerVendorUseCase.register(request.toCommand());
+        Vendor vendor = registerVendorUseCase.register(request.toCommand(idempotencyKey));
         return ApiResponse.success("공급사가 등록되었습니다.", VendorResponse.from(vendor));
     }
 

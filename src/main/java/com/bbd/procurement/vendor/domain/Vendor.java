@@ -33,19 +33,29 @@ public class Vendor extends BaseTimeEntity {
     @Column(name = "active", nullable = false)
     private boolean active;
 
-    private Vendor(String code, String name, String contact, String terms) {
+    // 등록 멱등키: 클라이언트가 클릭당 생성하는 UUID(헤더 Idempotency-Key 우선, 없으면 본문 requestId).
+    // 동일 키 재요청은 기존 공급사를 replay하며, 동시 경합은 uq_vendor_request UNIQUE 제약으로 차단한다.
+    @Column(name = "request_id", length = 64, updatable = false)
+    private String requestId;
+
+    private Vendor(String code, String name, String contact, String terms, String requestId) {
         this.code = code;
         this.name = name;
         this.contact = contact;
         this.terms = terms;
         this.active = true;
+        this.requestId = requestId;
     }
 
     // 신규 공급사 생성, code는 VendorCodeGeneratorPort 구현체가 채번한 값 주입
     public static Vendor create(String code, String name, String contact, String terms) {
+        return create(code, name, contact, terms, null);
+    }
+
+    public static Vendor create(String code, String name, String contact, String terms, String requestId) {
         validateCode(code);
         validateName(name);
-        return new Vendor(code, name, contact, terms);
+        return new Vendor(code, name, contact, terms, requestId);
     }
 
     // 공급사 정보 수정, code는 불변

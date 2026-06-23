@@ -20,6 +20,7 @@ public enum ErrorCode {
     VENDOR_INACTIVE(HttpStatus.BAD_REQUEST, "V003", "비활성화된 공급사입니다."),
     VENDOR_CODE_INVALID(HttpStatus.BAD_REQUEST, "V004", "공급사 코드 형식이 올바르지 않습니다."),
     VENDOR_NAME_REQUIRED(HttpStatus.BAD_REQUEST, "V005", "공급사명은 필수입니다."),
+    VENDOR_DUPLICATE_REQUEST(HttpStatus.CONFLICT, "V006", "이미 접수된 공급사 등록 요청입니다."),
 
     // PurchaseOrder
     PO_NOT_FOUND(HttpStatus.NOT_FOUND, "P001", "구매 주문을 찾을 수 없습니다."),

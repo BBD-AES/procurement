@@ -8,4 +8,6 @@ import java.util.Optional;
 interface VendorJpaRepository extends JpaRepository<Vendor, Long> {
 
     Optional<Vendor> findByCode(String code);
+
+    Optional<Vendor> findByRequestId(String requestId);
 }

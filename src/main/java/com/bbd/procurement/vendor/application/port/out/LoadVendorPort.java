@@ -9,6 +9,8 @@ public interface LoadVendorPort {
 
     Optional<Vendor> findByCode(String code);
 
+    Optional<Vendor> findByRequestId(String requestId);
+
     List<Vendor> findAll();
 
 }

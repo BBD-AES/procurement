@@ -26,5 +26,10 @@ public class VendorPersistenceAdapter implements SaveVendorPort, LoadVendorPort 
     }
 
     @Override
+    public Optional<Vendor> findByRequestId(String requestId) {
+        return vendorJpaRepository.findByRequestId(requestId);
+    }
+
+    @Override
     public List<Vendor> findAll() { return vendorJpaRepository.findAll(); }
 }

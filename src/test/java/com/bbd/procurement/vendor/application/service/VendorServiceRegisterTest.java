@@ -15,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import java.util.Optional;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -45,7 +47,7 @@ class VendorServiceRegisterTest {
     @DisplayName("정상 등록: 채번된 코드로 Vendor를 생성해 저장하고 결과를 반환한다")
     void register_success() {
         RegisterVendorCommand command =
-                new RegisterVendorCommand("ACME", "010-0000-0000", "NET30");
+                new RegisterVendorCommand("ACME", "010-0000-0000", "NET30", null);
         when(vendorCodeGeneratorPort.generate()).thenReturn(CODE);
         Vendor saved = Vendor.create(CODE, "ACME", "010-0000-0000", "NET30");
         when(saveVendorPort.save(any(Vendor.class))).thenReturn(saved);
@@ -56,13 +58,50 @@ class VendorServiceRegisterTest {
         verify(saveVendorPort).save(any(Vendor.class));
         // 죽은 사전 검사가 제거되었으므로 existsByCode 류의 조회는 호출되지 않는다.
         verify(loadVendorPort, never()).findByCode(any());
+        // requestId 미전송(null) 레거시 요청은 멱등 사전 조회도 건너뛴다.
+        verify(loadVendorPort, never()).findByRequestId(any());
+    }
+
+    @Test
+    @DisplayName("멱등 replay: 동일 requestId로 이미 등록된 공급사가 있으면 새로 저장하지 않고 기존 공급사를 반환한다")
+    void register_idempotentReplay_returnsExisting() {
+        String requestId = "11111111-1111-1111-1111-111111111111";
+        RegisterVendorCommand command =
+                new RegisterVendorCommand("ACME", "010-0000-0000", "NET30", requestId);
+        Vendor existing = Vendor.create(CODE, "ACME", "010-0000-0000", "NET30", requestId);
+        when(loadVendorPort.findByRequestId(requestId)).thenReturn(Optional.of(existing));
+
+        Vendor result = sut.register(command);
+
+        assertThat(result).isSameAs(existing);
+        // replay 경로: 채번/저장은 일어나지 않는다.
+        verify(vendorCodeGeneratorPort, never()).generate();
+        verify(saveVendorPort, never()).save(any(Vendor.class));
+    }
+
+    @Test
+    @DisplayName("동시 경합(TOCTOU): uq_vendor_request 제약 위반은 VENDOR_DUPLICATE_REQUEST로 변환된다")
+    void register_requestIdRaceConstraint_isConvertedToDuplicateRequest() {
+        String requestId = "22222222-2222-2222-2222-222222222222";
+        RegisterVendorCommand command =
+                new RegisterVendorCommand("ACME", "010-0000-0000", "NET30", requestId);
+        when(loadVendorPort.findByRequestId(requestId)).thenReturn(Optional.empty());
+        when(vendorCodeGeneratorPort.generate()).thenReturn(CODE);
+        when(saveVendorPort.save(any(Vendor.class)))
+                .thenThrow(new DataIntegrityViolationException(
+                        "ERROR: duplicate key value violates unique constraint \"uq_vendor_request\""));
+
+        assertThatThrownBy(() -> sut.register(command))
+                .isInstanceOf(ApiException.class)
+                .extracting("errorCode")
+                .isEqualTo(ErrorCode.VENDOR_DUPLICATE_REQUEST);
     }
 
     @Test
     @DisplayName("제약 위반: 저장 시 DataIntegrityViolationException은 VENDOR_CODE_DUPLICATED로 변환된다")
     void register_duplicateConstraint_isConvertedToApiException() {
         RegisterVendorCommand command =
-                new RegisterVendorCommand("ACME", "010-0000-0000", "NET30");
+                new RegisterVendorCommand("ACME", "010-0000-0000", "NET30", null);
         when(vendorCodeGeneratorPort.generate()).thenReturn(CODE);
         when(saveVendorPort.save(any(Vendor.class)))
                 .thenThrow(new DataIntegrityViolationException("uk_vendor_code"));

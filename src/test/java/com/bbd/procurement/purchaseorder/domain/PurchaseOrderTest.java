@@ -24,7 +24,7 @@ class PurchaseOrderTest {
 
     /** 라인 1개를 가진 정상 DRAFT PO 생성 헬퍼. */
     private PurchaseOrder draftWithOneLine() {
-        PurchaseOrderLine line = PurchaseOrderLine.create(1, "SKU-1", "부품A", new BigDecimal("100"), 2);
+        PurchaseOrderLine line = PurchaseOrderLine.create(1, "SKU-1", "부품A", new BigDecimal("100"), 2, "C", "EA", 0, true, "BUY");
         return PurchaseOrder.create(
                 VALID_PO, "V001", "WH-HQ-001", "SO-1", null, "note", List.of(line), 1L, null);
     }
@@ -138,8 +138,8 @@ class PurchaseOrderTest {
         @Test
         @DisplayName("생성 시 라인 subtotal 합으로 totalAmount가 계산된다")
         void 라인합산_정확성() {
-            PurchaseOrderLine l1 = PurchaseOrderLine.create(1, "SKU-1", "부품A", new BigDecimal("100"), 2); // 200
-            PurchaseOrderLine l2 = PurchaseOrderLine.create(2, "SKU-2", "부품B", new BigDecimal("50"), 3);  // 150
+            PurchaseOrderLine l1 = PurchaseOrderLine.create(1, "SKU-1", "부품A", new BigDecimal("100"), 2, "C", "EA", 0, true, "BUY"); // 200
+            PurchaseOrderLine l2 = PurchaseOrderLine.create(2, "SKU-2", "부품B", new BigDecimal("50"), 3, "C", "EA", 0, true, "BUY");  // 150
 
             PurchaseOrder po = PurchaseOrder.create(
                     VALID_PO, "V001", "WH-HQ-001", null, null, "note", List.of(l1, l2), 1L, null);
@@ -160,7 +160,7 @@ class PurchaseOrderTest {
         @DisplayName("replaceLines 후 총액이 새 라인 기준으로 재계산된다")
         void 라인교체_재계산() {
             PurchaseOrder po = draftWithOneLine(); // 100 * 2 = 200
-            PurchaseOrderLine newLine = PurchaseOrderLine.create(1, "SKU-9", "부품Z", new BigDecimal("10"), 5); // 50
+            PurchaseOrderLine newLine = PurchaseOrderLine.create(1, "SKU-9", "부품Z", new BigDecimal("10"), 5, "C", "EA", 0, true, "BUY"); // 50
 
             po.replaceLines(List.of(newLine));
 

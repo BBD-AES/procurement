@@ -64,7 +64,7 @@ class WorkOrderServiceCancelTest {
 
     private WorkOrder planned() {
         return WorkOrder.create(WO_NUMBER, "SO-1", "WH-HQ-001",
-                List.of(WorkOrderLine.create(1, "SKU-1", "부품1", new BigDecimal("100"), 2)), 1L, null);
+                List.of(WorkOrderLine.create(1, "SKU-1", "부품1", new BigDecimal("100"), 2, "C", "EA", 0, true, "MAKE")), 1L, null);
     }
 
     @Test

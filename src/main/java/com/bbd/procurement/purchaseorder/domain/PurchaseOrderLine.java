@@ -32,8 +32,23 @@ public class PurchaseOrderLine {
     @Column(name = "part_name", nullable = false, length = 200)
     private String partName;
 
+    @Column(name = "category", length = 100)
+    private String category;
+
+    @Column(name = "unit", length = 30)
+    private String unit;
+
+    @Column(name = "safety_stock", nullable = false)
+    private int safetyStock;
+
     @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal unitPrice;
+
+    @Column(name = "active", nullable = false)
+    private boolean active;
+
+    @Column(name = "sourcing_type", length = 20)
+    private String sourcingType;
 
     @Column(name = "quantity", nullable = false)
     private int quantity;
@@ -41,18 +56,26 @@ public class PurchaseOrderLine {
     @Column(name = "subtotal", nullable = false, precision = 15, scale = 2)
     private BigDecimal subtotal;
 
-    private PurchaseOrderLine(int lineOrder, String sku, String partName, BigDecimal unitPrice, int quantity) {
+    private PurchaseOrderLine(int lineOrder, String sku, String partName, BigDecimal unitPrice, int quantity,
+                             String category, String unit, int safetyStock, boolean active, String sourcingType) {
         this.lineOrder = lineOrder;
         this.sku = sku;
         this.partName = partName;
         this.unitPrice = unitPrice;
         this.quantity = quantity;
+        this.category = category;
+        this.unit = unit;
+        this.safetyStock = safetyStock;
+        this.active = active;
+        this.sourcingType = sourcingType;
         this.subtotal = unitPrice.multiply(BigDecimal.valueOf(quantity));
     }
 
-    public static PurchaseOrderLine create(int lineOrder, String sku, String partName, BigDecimal unitPrice, int quantity) {
+    public static PurchaseOrderLine create(int lineOrder, String sku, String partName, BigDecimal unitPrice, int quantity,
+                                           String category, String unit, int safetyStock, boolean active, String sourcingType) {
         validate(sku, partName, unitPrice, quantity);
-        return new PurchaseOrderLine(lineOrder, sku, partName, unitPrice, quantity);
+        return new PurchaseOrderLine(lineOrder, sku, partName, unitPrice, quantity,
+                category, unit, safetyStock, active, sourcingType);
     }
 
     void assignTo(PurchaseOrder purchaseOrder) {

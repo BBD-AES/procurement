@@ -150,9 +150,15 @@ public class PurchaseOrder extends BaseTimeEntity {
         List<StockInRequested.Line> eventLines = this.lines.stream()
                 .map(line -> new StockInRequested.Line(
                         line.getSku(),
+                        line.getPartName(),
+                        line.getCategory(),
+                        line.getUnit(),
+                        line.getSafetyStock(),
                         line.getQuantity(),
                         this.warehouseCode,
-                        line.getUnitPrice().intValueExact()
+                        line.getUnitPrice().intValueExact(),
+                        line.isActive(),
+                        line.getSourcingType()
                 ))
                 .toList();
 

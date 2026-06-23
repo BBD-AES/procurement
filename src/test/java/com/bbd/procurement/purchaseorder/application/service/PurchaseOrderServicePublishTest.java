@@ -62,7 +62,7 @@ class PurchaseOrderServicePublishTest {
     private static final String PO_NUMBER = "PO-2026-000001";
 
     private PurchaseOrder draftPo() {
-        PurchaseOrderLine line = PurchaseOrderLine.create(1, "SKU-1", "부품A", new BigDecimal("100"), 2);
+        PurchaseOrderLine line = PurchaseOrderLine.create(1, "SKU-1", "부품A", new BigDecimal("100"), 2, "카테고리A", "EA", 5, true, "BUY");
         return PurchaseOrder.create(
                 PO_NUMBER, "V001", "WH-HQ-001", "SO-1", null, "note", List.of(line), 1L, null);
     }

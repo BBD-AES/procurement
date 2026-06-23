@@ -59,7 +59,7 @@ dependencies {
 	testImplementation 'org.springframework.kafka:spring-kafka-test'
 
 	// security-core
-	implementation 'com.bbd:bbd-platform-core:0.0.7'
+	implementation 'com.bbd:bbd-platform-core:0.0.8'
 
 	// redis
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'

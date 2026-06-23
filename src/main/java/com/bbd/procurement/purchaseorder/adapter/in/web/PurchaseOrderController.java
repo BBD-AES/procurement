@@ -105,8 +105,7 @@ public class PurchaseOrderController {
     @PostMapping("/{poNumber}/complete")
     public ApiResponse<PurchaseOrderResponse> complete(
             @Parameter(description = "PO번호", example = "PO-2026-000001")
-            @PathVariable String poNumber,
-            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
+            @PathVariable String poNumber
     ) {
         Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         PurchaseOrder po = completePurchaseOrderUseCase.complete(

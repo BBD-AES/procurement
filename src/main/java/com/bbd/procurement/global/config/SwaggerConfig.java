@@ -1,8 +1,10 @@
 package com.bbd.procurement.global.config;
 
+import io.swagger.v3.oas.models.parameters.Parameter;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
@@ -53,7 +55,17 @@ public class SwaggerConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
-                                .description("Keycloak Access Token 입력")))
+                                .description("Keycloak Access Token 입력"))
+
+                        // Swagger 문서용 공통 헤더
+                        .addParameters("IdempotencyKeyHeader",
+                                new Parameter()
+                                        .in("header")
+                                        .name("Idempotency-Key")
+                                        .required(false)
+                                        .description("멱등 처리를 위한 요청 고유 키. POST 또는 상태 변경 PATCH 요청에서 사용")
+                                        .schema(new StringSchema()
+                                                .example("018f4c2e-7b8a-7c2f-9a01-2d4e9b7c1234"))))
 
                 .security(List.of(
                         new SecurityRequirement().addList(BEARER_AUTH)

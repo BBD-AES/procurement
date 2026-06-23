@@ -161,7 +161,12 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
                             item.sku(),
                             itemInfo.partName(),
                             new BigDecimal(itemInfo.unitPrice()),
-                            item.quantity()
+                            item.quantity(),
+                            itemInfo.category(),
+                            itemInfo.unit(),
+                            itemInfo.safetyStock(),
+                            itemInfo.active(),
+                            itemInfo.sourcingType()
                     );
                 })
                 .toList();
@@ -174,9 +179,15 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
         List<StockInRequested.Line> lines = workOrder.getLines().stream()
                 .map(line -> new StockInRequested.Line(
                         line.getSku(),
+                        line.getPartName(),
+                        line.getCategory(),
+                        line.getUnit(),
+                        line.getSafetyStock(),
                         line.getQuantity(),
                         workOrder.getWarehouseCode(),
-                        line.getUnitPrice().intValueExact()
+                        line.getUnitPrice().intValueExact(),
+                        line.isActive(),
+                        line.getSourcingType()
                 ))
                 .toList();
 

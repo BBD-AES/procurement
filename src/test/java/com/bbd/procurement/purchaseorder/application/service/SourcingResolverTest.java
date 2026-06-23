@@ -51,9 +51,9 @@ class SourcingResolverTest {
         List<PurchaseRequested.Line> lines = List.of(
                 line("SKU-1", null), line("SKU-2", null), line("SKU-3", null));
         when(loadItemPort.findBySkus(anyList())).thenReturn(List.of(
-                new ItemResult("SKU-1", "p1", 100, "BUY"),
-                new ItemResult("SKU-2", "p2", 100, "MAKE"),
-                new ItemResult("SKU-3", "p3", 100, "BUY")));
+                new ItemResult("SKU-1", "p1", 100, "BUY", "CAT", "EA", 0, true),
+                new ItemResult("SKU-2", "p2", 100, "MAKE", "CAT", "EA", 0, true),
+                new ItemResult("SKU-3", "p3", 100, "BUY", "CAT", "EA", 0, true)));
 
         Map<SourcingType, List<PurchaseRequested.Line>> result = sut.resolveAll(lines);
 
@@ -83,7 +83,7 @@ class SourcingResolverTest {
     void 혼합이면_불명sku만_다건조회() {
         List<PurchaseRequested.Line> lines = List.of(line("SKU-1", "BUY"), line("SKU-2", null));
         when(loadItemPort.findBySkus(anyList())).thenReturn(List.of(
-                new ItemResult("SKU-2", "p2", 100, "MAKE")));
+                new ItemResult("SKU-2", "p2", 100, "MAKE", "CAT", "EA", 0, true)));
 
         sut.resolveAll(lines);
 
@@ -109,7 +109,7 @@ class SourcingResolverTest {
     void 불명sourcingType이면_BUY_degrade() {
         List<PurchaseRequested.Line> lines = List.of(line("SKU-1", null));
         when(loadItemPort.findBySkus(anyList())).thenReturn(List.of(
-                new ItemResult("SKU-1", "p1", 100, null)));
+                new ItemResult("SKU-1", "p1", 100, null, "CAT", "EA", 0, true)));
 
         Map<SourcingType, List<PurchaseRequested.Line>> result = sut.resolveAll(lines);
 

@@ -6,6 +6,10 @@ public record ItemResponse(
         String sku,
         @JsonProperty("name") String partName,
         int unitPrice,
-        String sourcingType
+        String sourcingType,
+        String category,
+        String unit,
+        int safetyStock,
+        boolean active
 ) {
 }

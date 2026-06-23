@@ -19,9 +19,15 @@ public record StockInRequested(
 
     public record Line(
             String sku,
+            String name,
+            String category,
+            String unit,
+            int safetyStock,
             int quantity,
             String warehouseCode,
-            int unitPrice
+            int unitPrice,
+            boolean active,
+            String sourcingType
     ) {
     }
 

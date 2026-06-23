@@ -23,7 +23,8 @@ public class ItemClientAdapter implements LoadItemPort {
     @Override
     public ItemResult findBySku(String sku) {
         ItemResponse response = getItem(sku);
-        return new ItemResult(response.sku(), response.partName(), response.unitPrice(), response.sourcingType());
+        return new ItemResult(response.sku(), response.partName(), response.unitPrice(), response.sourcingType(),
+                response.category(), response.unit(), response.safetyStock(), response.active());
     }
 
     @Override
@@ -36,7 +37,8 @@ public class ItemClientAdapter implements LoadItemPort {
         for (int i =0;i<skus.size();i+=MAX_BATCH) {
             List<String> chunk = skus.subList(i, Math.min(i+MAX_BATCH, skus.size()));
             for (ItemResponse r : getItems(chunk)) {
-                results.add(new ItemResult(r.sku(), r.partName(), r.unitPrice(), r.sourcingType()));
+                results.add(new ItemResult(r.sku(), r.partName(), r.unitPrice(), r.sourcingType(),
+                        r.category(), r.unit(), r.safetyStock(), r.active()));
             }
         }
         return results;

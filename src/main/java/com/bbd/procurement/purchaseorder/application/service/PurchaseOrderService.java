@@ -207,7 +207,12 @@ public class PurchaseOrderService implements
                             item.sku(),
                             itemInfo.partName(),
                             new BigDecimal(itemInfo.unitPrice()),
-                            item.quantity()
+                            item.quantity(),
+                            itemInfo.category(),
+                            itemInfo.unit(),
+                            itemInfo.safetyStock(),
+                            itemInfo.active(),
+                            itemInfo.sourcingType()
                     );
                 })
                 .toList();

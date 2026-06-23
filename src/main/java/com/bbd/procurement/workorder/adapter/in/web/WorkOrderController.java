@@ -47,10 +47,11 @@ public class WorkOrderController {
     @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<WorkOrderResponse> create(
-            @Valid @RequestBody CreateWorkOrderRequest request
+            @Valid @RequestBody CreateWorkOrderRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey
             ) {
         Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
-        WorkOrder wo = createWorkOrderUseCase.create(request.toCommand(userId));
+        WorkOrder wo = createWorkOrderUseCase.create(request.toCommand(userId, idempotencyKey));
         return ApiResponse.success("작업 지시가 생성되었습니다.", WorkOrderResponse.from(wo));
     }
 

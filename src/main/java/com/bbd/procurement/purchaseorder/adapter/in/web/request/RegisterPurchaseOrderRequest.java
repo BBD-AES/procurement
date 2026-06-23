@@ -33,12 +33,18 @@ public record RegisterPurchaseOrderRequest(
         List<PurchaseOrderLineItemRequest> lines
 ) {
     public RegisterPurchaseOrderCommand toCommand(Long createdBy) {
+        return toCommand(createdBy, null);
+    }
+
+    public RegisterPurchaseOrderCommand toCommand(Long createdBy, String idempotencyKey) {
         List<PurchaseOrderLineItem> items = lines == null
                 ? List.of()
                 :
                 lines.stream().map(PurchaseOrderLineItemRequest::toCommandItem).toList();
+        // 멱등 키: Idempotency-Key 헤더 우선(org 표준·게이트웨이가 강제), 없으면 본문 requestId(레거시 폴백).
+        String idemKey = (idempotencyKey != null && !idempotencyKey.isBlank()) ? idempotencyKey : requestId;
         return new RegisterPurchaseOrderCommand(
-                vendorCode, warehouseCode, soNumber, expectedArrival, note, items, createdBy, requestId
+                vendorCode, warehouseCode, soNumber, expectedArrival, note, items, createdBy, idemKey
         );
     }
 }

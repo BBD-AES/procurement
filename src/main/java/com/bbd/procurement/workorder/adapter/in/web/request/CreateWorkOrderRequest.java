@@ -24,10 +24,16 @@ public record CreateWorkOrderRequest(
         List<WorkOrderLineItemRequest> lines
 ) {
     public CreateWorkOrderCommand toCommand(Long createdBy) {
+        return toCommand(createdBy, null);
+    }
+
+    public CreateWorkOrderCommand toCommand(Long createdBy, String idempotencyKey) {
         List<WorkOrderLineItem> items = lines == null
                 ? List.of()
                 :
                 lines.stream().map(WorkOrderLineItemRequest::toCommandItem).toList();
-        return new CreateWorkOrderCommand(soNumber, warehouseCode, items, createdBy, requestId);
+        // 멱등 키: Idempotency-Key 헤더 우선(org 표준·게이트웨이가 강제), 없으면 본문 requestId(레거시 폴백).
+        String idemKey = (idempotencyKey != null && !idempotencyKey.isBlank()) ? idempotencyKey : requestId;
+        return new CreateWorkOrderCommand(soNumber, warehouseCode, items, createdBy, idemKey);
     }
 }

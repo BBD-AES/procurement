@@ -2,23 +2,29 @@ package com.bbd.procurement.workorder.application.service;
 
 import com.bbd.procurement.global.error.ApiException;
 import com.bbd.procurement.global.error.ErrorCode;
+import com.bbd.procurement.global.util.JsonUtil;
 import com.bbd.procurement.purchaseorder.application.port.out.LoadItemPort;
 import com.bbd.procurement.purchaseorder.application.port.out.result.ItemResult;
 import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
+import com.bbd.procurement.workorder.application.port.in.CancelWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CompleteWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CreateWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.GetWorkOrderQuery;
 import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
+import com.bbd.procurement.workorder.application.port.in.command.CancelWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.CompleteWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.CreateWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.WorkOrderLineItem;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderRequestNotificationPort;
+import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderHistoryPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.WorkOrderNumberGeneratorPort;
 import com.bbd.procurement.workorder.domain.WorkOrder;
+import com.bbd.procurement.workorder.domain.WorkOrderChangeType;
+import com.bbd.procurement.workorder.domain.WorkOrderHistory;
 import com.bbd.procurement.workorder.domain.WorkOrderLine;
 import com.bbd.procurement.workorder.domain.WorkOrderRequestNotification;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +47,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderUseCase, CompleteWorkOrderUseCase, GetWorkOrderQuery {
+public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderUseCase, CompleteWorkOrderUseCase, CancelWorkOrderUseCase, GetWorkOrderQuery {
 
     private final SaveWorkOrderPort saveWorkOrderPort;
     private final LoadWorkOrderPort loadWorkOrderPort;
@@ -50,6 +56,7 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     private final SaveOutboxEventPort saveOutboxEventPort;
     private final ObjectMapper objectMapper;
     private final LoadWorkOrderRequestNotificationPort loadWorkOrderRequestNotificationPort;
+    private final SaveWorkOrderHistoryPort saveWorkOrderHistoryPort;
 
     @Override
     @Transactional
@@ -97,6 +104,18 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     }
 
     @Override
+    @Transactional
+    public WorkOrder cancel(CancelWorkOrderCommand command) {
+        WorkOrder workOrder = findOrThrow(command.workOrderNumber());
+        String before = snapshot(workOrder);
+        boolean transitioned = workOrder.cancel();
+        if (transitioned) {
+            recordHistory(workOrder, WorkOrderChangeType.CANCELED, before, command.requesterId());
+        }
+        return workOrder;
+    }
+
+    @Override
     public WorkOrder getByWorkOrderNumber(String workOrderNumber) {
         return findOrThrow(workOrderNumber);
     }
@@ -104,6 +123,25 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     @Override
     public List<WorkOrder> list() {
         return loadWorkOrderPort.findAll();
+    }
+
+    private String snapshot(WorkOrder workOrder) {
+        return JsonUtil.toJson(objectMapper, WorkOrderSnapshot.from(workOrder),
+                "WorkOrderSnapshot for WO " + workOrder.getWorkOrderNumber());
+    }
+
+    private void recordHistory(WorkOrder workOrder,
+                               WorkOrderChangeType changeType,
+                               String beforePayload,
+                               Long changedBy) {
+        WorkOrderHistory history = WorkOrderHistory.create(
+                workOrder.getWorkOrderNumber(),
+                changeType,
+                beforePayload,
+                snapshot(workOrder),
+                changedBy
+        );
+        saveWorkOrderHistoryPort.save(history);
     }
 
     private WorkOrder findOrThrow(String workOrderNumber) {

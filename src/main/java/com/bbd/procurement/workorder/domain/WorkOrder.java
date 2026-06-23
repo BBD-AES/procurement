@@ -100,14 +100,15 @@ public class WorkOrder extends BaseTimeEntity {
         this.completedAt = LocalDateTime.now();
     }
 
-    public void cancel() {
+    public boolean cancel() {
         if (this.status == WorkOrderStatus.COMPLETED) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }
         if (this.status == WorkOrderStatus.CANCELED) {
-            return;
+            return false;
         }
         this.status = WorkOrderStatus.CANCELED;
+        return true;
     }
 
     private void attachLine(WorkOrderLine line) {

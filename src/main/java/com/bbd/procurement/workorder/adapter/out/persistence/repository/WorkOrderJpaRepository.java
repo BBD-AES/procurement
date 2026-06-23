@@ -13,6 +13,8 @@ public interface WorkOrderJpaRepository extends JpaRepository<WorkOrder, Long> {
 
     Optional<WorkOrder> findByWorkOrderNumber(String workOrderNumber);
 
+    Optional<WorkOrder> findByRequestId(String requestId);
+
     @Query("select wo.status as status, count(wo) as count from WorkOrder wo group by wo.status")
     List<StatusCount<WorkOrderStatus>> countGroupByStatus();
 

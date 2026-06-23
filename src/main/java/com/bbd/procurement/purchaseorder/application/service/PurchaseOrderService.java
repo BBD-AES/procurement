@@ -143,8 +143,10 @@ public class PurchaseOrderService implements
     public PurchaseOrder cancel(CancelPurchaseOrderCommand command) {
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
         String before = snapshot(po);
-        po.cancel();
-        recordHistory(po, PurchaseOrderChangeType.CANCELED, before, command.requesterId());
+        boolean transitioned = po.cancel();
+        if (transitioned) {
+            recordHistory(po, PurchaseOrderChangeType.CANCELED, before, command.requesterId());
+        }
         return po;
     }
 

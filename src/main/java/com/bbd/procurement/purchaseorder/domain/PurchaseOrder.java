@@ -135,14 +135,15 @@ public class PurchaseOrder extends BaseTimeEntity {
         this.receivedAt = LocalDateTime.now();
     }
 
-    public void cancel() {
+    public boolean cancel() {
         if (this.status == PurchaseOrderStatus.RECEIVED) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
         }
         if (this.status == PurchaseOrderStatus.CANCELED) {
-            return;
+            return false;
         }
         this.status = PurchaseOrderStatus.CANCELED;
+        return true;
     }
 
     public StockInRequested toStockInRequested(UUID eventId, Instant occurredAt) {

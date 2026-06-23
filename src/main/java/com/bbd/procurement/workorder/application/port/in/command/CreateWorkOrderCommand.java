@@ -6,6 +6,7 @@ public record CreateWorkOrderCommand(
         String soNumber,
         String warehouseCode,
         List<WorkOrderLineItem> lines,
-        Long createdBy
+        Long createdBy,
+        String requestId
 ) {
 }

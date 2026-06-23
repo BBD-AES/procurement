@@ -4,6 +4,7 @@ import com.bbd.procurement.global.config.KafkaConsumerConfig;
 import com.bbd.procurement.purchaseorder.application.port.out.LoadPurchaseRequestNotificationPort;
 import com.bbd.procurement.purchaseorder.application.port.out.SavePurchaseRequestNotificationPort;
 import com.bbd.procurement.purchaseorder.application.service.PurchaseRequestNotificationService;
+import com.bbd.procurement.purchaseorder.adapter.in.messaging.event.PurchaseRequested;
 import com.bbd.procurement.purchaseorder.application.service.SourcingResolver;
 import com.bbd.procurement.purchaseorder.domain.PurchaseRequestNotification;
 import com.bbd.procurement.purchaseorder.domain.SourcingType;
@@ -26,6 +27,8 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,7 +84,8 @@ class PurchaseRequestedListenerIT {
 
     @Test
     void BUY_라인은_구매요청으로_라우팅된다() {
-        when(sourcingResolver.resolve(eq("SKU-001"), any())).thenReturn(SourcingType.BUY);
+        when(sourcingResolver.resolveAll(any()))
+                .thenReturn(Map.of(SourcingType.BUY, List.of(new PurchaseRequested.Line("SKU-001", 10, "BUY"))));
 
         kafkaTemplate.send(TOPIC, "SO-1", message("evt-buy", "SO-1", "SKU-001", "BUY"));
 
@@ -94,7 +98,8 @@ class PurchaseRequestedListenerIT {
 
     @Test
     void MAKE_라인은_작업지시로_라우팅된다() {
-        when(sourcingResolver.resolve(eq("SKU-002"), any())).thenReturn(SourcingType.MAKE);
+        when(sourcingResolver.resolveAll(any()))
+                .thenReturn(Map.of(SourcingType.MAKE, List.of(new PurchaseRequested.Line("SKU-002", 10, "MAKE"))));
 
         kafkaTemplate.send(TOPIC, "SO-2", message("evt-make", "SO-2", "SKU-002", "MAKE"));
 

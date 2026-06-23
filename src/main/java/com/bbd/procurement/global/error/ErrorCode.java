@@ -43,7 +43,8 @@ public enum ErrorCode {
     WORK_ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "W001", "작업지시를 찾을 수 없습니다."),
     WORK_ORDER_INVALID_STATE_TRANSITION(HttpStatus.CONFLICT, "W002", "허용되지 않는 작업지시 상태 전이입니다."),
     WORK_ORDER_LINE_REQUIRED(HttpStatus.BAD_REQUEST, "W003", "작업지시에 최소 1개 이상의 라인이 필요합니다."),
-    WORK_ORDER_LINE_INVALID(HttpStatus.BAD_REQUEST, "W004", "작업지시 라인 항목이 올바르지 않습니다.");
+    WORK_ORDER_LINE_INVALID(HttpStatus.BAD_REQUEST, "W004", "작업지시 라인 항목이 올바르지 않습니다."),
+    WORK_ORDER_DUPLICATE_REQUEST(HttpStatus.CONFLICT, "W005", "이미 접수된 작업지시입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;

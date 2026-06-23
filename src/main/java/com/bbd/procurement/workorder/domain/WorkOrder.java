@@ -49,23 +49,27 @@ public class WorkOrder extends BaseTimeEntity {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "request_id", length = 64, updatable = false)
+    private String requestId;
+
     @OneToMany(mappedBy = "workOrder", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("lineOrder ASC")
     private List<WorkOrderLine> lines = new ArrayList<>();
 
-    private WorkOrder(String workOrderNumber, String soNumber, String warehouseCode, Long createdBy) {
+    private WorkOrder(String workOrderNumber, String soNumber, String warehouseCode, Long createdBy, String requestId) {
         this.workOrderNumber = workOrderNumber;
         this.soNumber = soNumber;
         this.warehouseCode = warehouseCode;
         this.createdBy = createdBy;
+        this.requestId = requestId;
         this.status = WorkOrderStatus.PLANNED;
         this.totalAmount = BigDecimal.ZERO;
     }
 
-    public static WorkOrder create(String workOrderNumber, String soNumber, String warehouseCode, List<WorkOrderLine> initialLines, Long createdBy) {
+    public static WorkOrder create(String workOrderNumber, String soNumber, String warehouseCode, List<WorkOrderLine> initialLines, Long createdBy, String requestId) {
         validateRequired(workOrderNumber, soNumber, warehouseCode, createdBy);
 
-        WorkOrder wo = new WorkOrder(workOrderNumber, soNumber, warehouseCode, createdBy);
+        WorkOrder wo = new WorkOrder(workOrderNumber, soNumber, warehouseCode, createdBy, requestId);
 
         if (initialLines != null) {
             initialLines.forEach(wo::attachLine);

@@ -17,6 +17,9 @@ public record CreateWorkOrderRequest(
         @Size(max = 20, message = "warehouseCode는 20자 이내여야 합니다.")
         String warehouseCode,
 
+        @Size(max = 64, message = "requestId는 64자 이내여야 합니다.")
+        String requestId,
+
         @Valid
         List<WorkOrderLineItemRequest> lines
 ) {
@@ -25,6 +28,6 @@ public record CreateWorkOrderRequest(
                 ? List.of()
                 :
                 lines.stream().map(WorkOrderLineItemRequest::toCommandItem).toList();
-        return new CreateWorkOrderCommand(soNumber, warehouseCode, items, createdBy);
+        return new CreateWorkOrderCommand(soNumber, warehouseCode, items, createdBy, requestId);
     }
 }

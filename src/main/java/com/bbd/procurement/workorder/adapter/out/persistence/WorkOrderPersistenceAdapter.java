@@ -30,6 +30,11 @@ public class WorkOrderPersistenceAdapter implements SaveWorkOrderPort, LoadWorkO
     }
 
     @Override
+    public Optional<WorkOrder> findByRequestId(String requestId) {
+        return workOrderJpaRepository.findByRequestId(requestId);
+    }
+
+    @Override
     public List<WorkOrder> findAll() {
         return workOrderJpaRepository.findAll();
     }

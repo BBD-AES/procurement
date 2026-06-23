@@ -20,6 +20,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -42,13 +43,9 @@ public class PurchaseRequestNotificationService implements HandlePurchaseRequest
             return;
         }
 
-        List<PurchaseRequested.Line> buyLines = event.lines().stream()
-                .filter(line -> sourcingResolver.resolve(line.sku(), line.sourcingType()) == SourcingType.BUY)
-                .toList();
-
-        List<PurchaseRequested.Line> makeLines = event.lines().stream()
-                .filter(line -> sourcingResolver.resolve(line.sku(), line.sourcingType()) == SourcingType.MAKE)
-                .toList();
+        Map<SourcingType, List<PurchaseRequested.Line>> routed = sourcingResolver.resolveAll(event.lines());
+        List<PurchaseRequested.Line> buyLines = routed.getOrDefault(SourcingType.BUY, List.of());
+        List<PurchaseRequested.Line> makeLines = routed.getOrDefault(SourcingType.MAKE, List.of());
 
         LocalDateTime receivedAt = LocalDateTime.now();
 

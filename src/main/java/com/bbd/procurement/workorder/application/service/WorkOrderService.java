@@ -22,6 +22,7 @@ import com.bbd.procurement.workorder.domain.WorkOrder;
 import com.bbd.procurement.workorder.domain.WorkOrderLine;
 import com.bbd.procurement.workorder.domain.WorkOrderRequestNotification;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -33,6 +34,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
@@ -52,14 +54,28 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     @Override
     @Transactional
     public WorkOrder create(CreateWorkOrderCommand command) {
-        String number = workOrderNumberGeneratorPort.generate();
-        List<WorkOrderLine> lines = toLines(command.lines());
+        // 멱등 사전 조회: 동일 requestId로 이미 만든 WO가 있으면 새로 만들지 않고 그대로 반환(replay).
+        // (시간차 더블클릭/재시도를 여기서 흡수한다. requestId 미전송 레거시 요청은 건너뛰고 기존대로 생성.)
+        if (StringUtils.hasText(command.requestId())) {
+            Optional<WorkOrder> existing = loadWorkOrderPort.findByRequestId(command.requestId());
+            if (existing.isPresent()) {
+                return existing.get();
+            }
+        }
 
-        WorkOrder workOrder = WorkOrder.create(
-                number, command.soNumber(), command.warehouseCode(), lines, command.createdBy()
-        );
-        WorkOrder saved = saveWorkOrderPort.save(workOrder);
-        return saved;
+        try {
+            String number = workOrderNumberGeneratorPort.generate();
+            List<WorkOrderLine> lines = toLines(command.lines());
+
+            WorkOrder workOrder = WorkOrder.create(
+                    number, command.soNumber(), command.warehouseCode(), lines, command.createdBy(), command.requestId()
+            );
+            return saveWorkOrderPort.save(workOrder);
+        } catch (DataIntegrityViolationException e) {
+            // 거의 동시에 들어온 요청들이 사전 조회를 모두 통과한 경우(TOCTOU):
+            // DB의 uq_work_order_request UNIQUE 제약이 두 번째 INSERT를 거부한다 → 409로 응답.
+            throw new ApiException(ErrorCode.WORK_ORDER_DUPLICATE_REQUEST);
+        }
     }
 
     @Override

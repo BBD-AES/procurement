@@ -20,11 +20,10 @@ import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,14 +52,16 @@ class PurchaseRequestNotificationServiceTest {
 
     private static final String EVENT_ID = "evt-001";
 
+    private PurchaseRequested.Line line;
     private String message;
 
     @BeforeEach
     void setUp() {
+        line = new PurchaseRequested.Line("SKU-1", 5, "BUY");
         PurchaseRequested event = new PurchaseRequested(
                 EVENT_ID, "sales", "PURCHASE_REQUESTED", "2026-06-22T00:00:00Z",
                 "SO-1", "WH-HQ-001",
-                List.of(new PurchaseRequested.Line("SKU-1", 5, "BUY"))
+                List.of(line)
         );
         message = objectMapper.writeValueAsString(event);
     }
@@ -81,7 +82,8 @@ class PurchaseRequestNotificationServiceTest {
     @DisplayName("새 eventId(BUY 라인)면 구매 알림 저장 + ProcessedEvent를 함께 저장한다")
     void 신규_이벤트면_알림과_처리이력_저장() {
         when(processedEventPort.existsByEventId(EVENT_ID)).thenReturn(false);
-        when(sourcingResolver.resolve(eq("SKU-1"), eq("BUY"))).thenReturn(SourcingType.BUY);
+        when(sourcingResolver.resolveAll(any()))
+                .thenReturn(Map.of(SourcingType.BUY, List.of(line)));
 
         sut.handle(message);
 
@@ -93,9 +95,9 @@ class PurchaseRequestNotificationServiceTest {
     @Test
     @DisplayName("MAKE 라인이면 작업지시 알림으로 라우팅되고 구매 알림은 저장하지 않는다")
     void MAKE_라인이면_작업지시로_라우팅() {
-        // SKU-1 라인을 MAKE로 판정하도록 리졸버를 구성
-        lenient().when(sourcingResolver.resolve(eq("SKU-1"), eq("BUY"))).thenReturn(SourcingType.MAKE);
         when(processedEventPort.existsByEventId(EVENT_ID)).thenReturn(false);
+        when(sourcingResolver.resolveAll(any()))
+                .thenReturn(Map.of(SourcingType.MAKE, List.of(line)));
 
         sut.handle(message);
 

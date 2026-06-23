@@ -90,7 +90,7 @@ springdoc:
     config-url: /procurement/v3/api-docs/swagger-config
 
 item:
-  base-url: ${ITEM_SERVICE_BASE_URL:http://item:8080/item}
+  base-url: ${ITEM_SERVICE_BASE_URL:http://100.73.142.41/item}
 
 sales:
   base-url: ${SALES_SERVICE_BASE_URL:http://sales:8080/sales}

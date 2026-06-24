@@ -33,6 +33,10 @@ public class PurchaseOrderHistory {
     @Column(name = "changed_by", nullable = false, length = 20, updatable = false)
     private Long changedBy;
 
+    // 이력 기록 시점의 변경자 이름 스냅샷. 기존 행/이름 미확인 시 null → 조회측은 changedBy(#id)로 폴백.
+    @Column(name = "changed_by_name", length = 100, updatable = false)
+    private String changedByName;
+
     @Column(name = "changed_at", nullable = false, updatable = false)
     private LocalDateTime changedAt;
 
@@ -40,12 +44,14 @@ public class PurchaseOrderHistory {
                                  PurchaseOrderChangeType changeType,
                                  String beforePayload,
                                  String afterPayload,
-                                 Long changedBy) {
+                                 Long changedBy,
+                                 String changedByName) {
         this.poNumber = poNumber;
         this.changeType = changeType;
         this.beforePayload = beforePayload;
         this.afterPayload = afterPayload;
         this.changedBy = changedBy;
+        this.changedByName = changedByName;
         this.changedAt = LocalDateTime.now();
     }
 
@@ -53,8 +59,9 @@ public class PurchaseOrderHistory {
                                               PurchaseOrderChangeType changeType,
                                               String beforePayload,
                                               String afterPayload,
-                                              Long changedBy) {
-        return new PurchaseOrderHistory(poNumber, changeType, beforePayload, afterPayload, changedBy);
+                                              Long changedBy,
+                                              String changedByName) {
+        return new PurchaseOrderHistory(poNumber, changeType, beforePayload, afterPayload, changedBy, changedByName);
     }
 
 

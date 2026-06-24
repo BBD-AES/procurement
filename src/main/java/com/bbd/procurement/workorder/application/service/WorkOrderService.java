@@ -11,6 +11,7 @@ import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import com.bbd.procurement.workorder.application.port.in.CancelWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CompleteWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CreateWorkOrderUseCase;
+import com.bbd.procurement.workorder.application.port.in.GetWorkOrderHistoryQuery;
 import com.bbd.procurement.workorder.application.port.in.GetWorkOrderQuery;
 import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.UpdateWorkOrderHeaderUseCase;
@@ -21,6 +22,7 @@ import com.bbd.procurement.workorder.application.port.in.command.CreateWorkOrder
 import com.bbd.procurement.workorder.application.port.in.command.UpdateWorkOrderHeaderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.UpdateWorkOrderLinesCommand;
 import com.bbd.procurement.workorder.application.port.in.command.WorkOrderLineItem;
+import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderHistoryPort;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderRequestNotificationPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderHistoryPort;
@@ -31,6 +33,7 @@ import com.bbd.procurement.workorder.domain.WorkOrderChangeType;
 import com.bbd.procurement.workorder.domain.WorkOrderHistory;
 import com.bbd.procurement.workorder.domain.WorkOrderLine;
 import com.bbd.procurement.workorder.domain.WorkOrderRequestNotification;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -51,7 +54,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderUseCase, CompleteWorkOrderUseCase, CancelWorkOrderUseCase, UpdateWorkOrderHeaderUseCase, UpdateWorkOrderLinesUseCase, GetWorkOrderQuery {
+public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderUseCase, CompleteWorkOrderUseCase, CancelWorkOrderUseCase, UpdateWorkOrderHeaderUseCase, UpdateWorkOrderLinesUseCase, GetWorkOrderQuery, GetWorkOrderHistoryQuery {
 
     private final SaveWorkOrderPort saveWorkOrderPort;
     private final LoadWorkOrderPort loadWorkOrderPort;
@@ -61,6 +64,8 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     private final ObjectMapper objectMapper;
     private final LoadWorkOrderRequestNotificationPort loadWorkOrderRequestNotificationPort;
     private final SaveWorkOrderHistoryPort saveWorkOrderHistoryPort;
+    private final LoadWorkOrderHistoryPort loadWorkOrderHistoryPort;
+    private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
     @Override
     @Transactional
@@ -149,6 +154,12 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
         return loadWorkOrderPort.findAll();
     }
 
+    @Override
+    public List<WorkOrderHistory> getHistory(String workOrderNumber) {
+        findOrThrow(workOrderNumber);
+        return loadWorkOrderHistoryPort.findByWorkOrderNumber(workOrderNumber);
+    }
+
     private String snapshot(WorkOrder workOrder) {
         return JsonUtil.toJson(objectMapper, WorkOrderSnapshot.from(workOrder),
                 "WorkOrderSnapshot for WO " + workOrder.getWorkOrderNumber());
@@ -163,9 +174,18 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
                 changeType,
                 beforePayload,
                 snapshot(workOrder),
-                changedBy
+                changedBy,
+                resolveChangedByName()
         );
         saveWorkOrderHistoryPort.save(history);
+    }
+
+    /**
+     * 이력 변경자 이름 스냅샷. changedBy(userId)는 항상 컨트롤러가 현재 사용자 스냅샷에서 주입하므로,
+     * 같은 스냅샷의 displayName을 사용한다(요청 스레드 내 보안 컨텍스트 기준). 미확인 시 null → 조회측 #id 폴백.
+     */
+    private String resolveChangedByName() {
+        return getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().displayName();
     }
 
     private WorkOrder findOrThrow(String workOrderNumber) {

@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 public record PurchaseOrderHistoryResponse(
         PurchaseOrderChangeType changeType,
         Long changedBy,
+        String changedByName,
         LocalDateTime changedAt,
         JsonNode before,
         JsonNode after

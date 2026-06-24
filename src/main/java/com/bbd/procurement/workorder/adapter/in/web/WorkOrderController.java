@@ -4,10 +4,13 @@ import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.workorder.adapter.in.web.request.CreateWorkOrderRequest;
 import com.bbd.procurement.workorder.adapter.in.web.request.UpdateWorkOrderHeaderRequest;
 import com.bbd.procurement.workorder.adapter.in.web.request.UpdateWorkOrderLinesRequest;
+import com.bbd.procurement.workorder.adapter.in.web.response.WorkOrderHistoryResponse;
+import com.bbd.procurement.workorder.adapter.in.web.response.WorkOrderHistoryResponseAssembler;
 import com.bbd.procurement.workorder.adapter.in.web.response.WorkOrderResponse;
 import com.bbd.procurement.workorder.application.port.in.CancelWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CompleteWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CreateWorkOrderUseCase;
+import com.bbd.procurement.workorder.application.port.in.GetWorkOrderHistoryQuery;
 import com.bbd.procurement.workorder.application.port.in.GetWorkOrderQuery;
 import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.UpdateWorkOrderHeaderUseCase;
@@ -42,7 +45,9 @@ public class WorkOrderController {
     private final UpdateWorkOrderHeaderUseCase updateWorkOrderHeaderUseCase;
     private final UpdateWorkOrderLinesUseCase updateWorkOrderLinesUseCase;
     private final GetWorkOrderQuery getWorkOrderQuery;
+    private final GetWorkOrderHistoryQuery getWorkOrderHistoryQuery;
     private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
+    private final WorkOrderHistoryResponseAssembler historyResponseAssembler;
 
     @Operation(
             summary = "작업지시 생성",
@@ -144,6 +149,23 @@ public class WorkOrderController {
     ) {
         WorkOrder workOrder = getWorkOrderQuery.getByWorkOrderNumber(workOrderNumber);
         return ApiResponse.success(WorkOrderResponse.from(workOrder));
+    }
+
+    @Operation(
+            summary = "작업지시 변경 이력 조회",
+            description = "작업지시의 헤더수정·라인교체·취소 이력을 시간순으로 조회 | 권한: HQ_MANAGER, HQ_STAFF"
+    )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
+    @GetMapping("/{workOrderNumber}/history")
+    public ApiResponse<List<WorkOrderHistoryResponse>> getHistory(
+            @Parameter(description = "작업 지시 번호", example = "WO-2026-000001")
+            @PathVariable String workOrderNumber
+    ) {
+        List<WorkOrderHistoryResponse> result =
+                getWorkOrderHistoryQuery.getHistory(workOrderNumber).stream()
+                        .map(historyResponseAssembler::toHistoryResponse)
+                        .toList();
+        return ApiResponse.success(result);
     }
 
     @Operation(summary = "작업 지시 목록 조회")

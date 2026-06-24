@@ -14,6 +14,9 @@ import com.bbd.procurement.vendor.application.port.out.LoadVendorPort;
 import com.bbd.procurement.vendor.domain.Vendor;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
+import com.bbd.securitycore.application.model.CurrentUserSnapshotResult;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -57,8 +62,17 @@ class PurchaseOrderServiceIdempotencyTest {
     @Mock LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
     @Mock LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
     @Mock LoadVendorPort loadVendorPort;
+    @Mock GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
     @InjectMocks PurchaseOrderService sut;
+
+    @BeforeEach
+    void stubCurrentUser() {
+        // 이력 기록 시 변경자 이름 스냅샷용. 생성 없이 끝나는(replay/충돌) 테스트도 있어 lenient.
+        CurrentUserSnapshotResult snapshot = mock(CurrentUserSnapshotResult.class);
+        lenient().when(snapshot.displayName()).thenReturn("테스터");
+        lenient().when(getCurrentUserSnapshotUseCase.getCurrentUserSnapshot()).thenReturn(snapshot);
+    }
 
     private static final String REQUEST_ID = "11111111-1111-1111-1111-111111111111";
 

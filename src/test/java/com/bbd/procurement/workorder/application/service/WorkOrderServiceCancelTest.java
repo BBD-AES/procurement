@@ -5,6 +5,7 @@ import com.bbd.procurement.global.error.ErrorCode;
 import com.bbd.procurement.purchaseorder.application.port.out.LoadItemPort;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.workorder.application.port.in.command.CancelWorkOrderCommand;
+import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderHistoryPort;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderRequestNotificationPort;
 import com.bbd.procurement.workorder.application.port.out.SaveWorkOrderHistoryPort;
@@ -13,6 +14,9 @@ import com.bbd.procurement.workorder.application.port.out.WorkOrderNumberGenerat
 import com.bbd.procurement.workorder.domain.WorkOrder;
 import com.bbd.procurement.workorder.domain.WorkOrderLine;
 import com.bbd.procurement.workorder.domain.WorkOrderStatus;
+import com.bbd.securitycore.application.model.CurrentUserSnapshotResult;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +34,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,10 +59,20 @@ class WorkOrderServiceCancelTest {
     @Spy ObjectMapper objectMapper = JsonMapper.builder().build();
     @Mock LoadWorkOrderRequestNotificationPort loadWorkOrderRequestNotificationPort;
     @Mock SaveWorkOrderHistoryPort saveWorkOrderHistoryPort;
+    @Mock LoadWorkOrderHistoryPort loadWorkOrderHistoryPort;
+    @Mock GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
     @InjectMocks WorkOrderService sut;
 
     private static final String WO_NUMBER = "WO-2026-000001";
+
+    @BeforeEach
+    void stubCurrentUser() {
+        // 이력 기록 시 변경자 이름 스냅샷용. 일부 테스트는 전이 없이 끝나므로 lenient.
+        CurrentUserSnapshotResult snapshot = mock(CurrentUserSnapshotResult.class);
+        lenient().when(snapshot.displayName()).thenReturn("테스터");
+        lenient().when(getCurrentUserSnapshotUseCase.getCurrentUserSnapshot()).thenReturn(snapshot);
+    }
 
     private CancelWorkOrderCommand command() {
         return new CancelWorkOrderCommand(WO_NUMBER, 1L);

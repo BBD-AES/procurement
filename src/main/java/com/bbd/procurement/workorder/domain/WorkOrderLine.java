@@ -24,7 +24,7 @@ public class WorkOrderLine {
     @JoinColumn(name = "work_order_id", nullable = false)
     private WorkOrder workOrder;
 
-    @Column(name = "lineOrder", nullable = false)
+    @Column(name = "line_order", nullable = false)
     private int lineOrder;
 
     @Column(name = "sku", nullable = false, length = 50)

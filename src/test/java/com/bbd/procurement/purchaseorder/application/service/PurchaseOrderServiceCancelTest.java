@@ -12,6 +12,9 @@ import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrderStatus;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.vendor.application.port.out.LoadVendorPort;
+import com.bbd.securitycore.application.model.CurrentUserSnapshotResult;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,6 +30,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,10 +56,19 @@ class PurchaseOrderServiceCancelTest {
     @Mock LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
     @Mock LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
     @Mock LoadVendorPort loadVendorPort;
+    @Mock GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
     @InjectMocks PurchaseOrderService sut;
 
     private static final String PO_NUMBER = "PO-2026-000001";
+
+    @BeforeEach
+    void stubCurrentUser() {
+        // 이력 기록 시 변경자 이름 스냅샷용. 전이 없이 끝나는 테스트도 있어 lenient.
+        CurrentUserSnapshotResult snapshot = mock(CurrentUserSnapshotResult.class);
+        lenient().when(snapshot.displayName()).thenReturn("테스터");
+        lenient().when(getCurrentUserSnapshotUseCase.getCurrentUserSnapshot()).thenReturn(snapshot);
+    }
 
     private CancelPurchaseOrderCommand command() {
         return new CancelPurchaseOrderCommand(PO_NUMBER, 1L);

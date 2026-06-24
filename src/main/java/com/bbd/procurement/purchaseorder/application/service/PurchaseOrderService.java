@@ -13,6 +13,7 @@ import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
 import com.bbd.procurement.vendor.application.port.out.LoadVendorPort;
 import com.bbd.procurement.vendor.domain.Vendor;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -55,6 +56,7 @@ public class PurchaseOrderService implements
     private final LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
     private final LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
     private final LoadVendorPort loadVendorPort;
+    private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
     @Override
     @Transactional
@@ -232,9 +234,18 @@ public class PurchaseOrderService implements
                 changeType,
                 beforePayload,
                 snapshot(po),
-                changedBy
+                changedBy,
+                resolveChangedByName()
         );
         savePurchaseOrderHistoryPort.save(history);
+    }
+
+    /**
+     * 이력 변경자 이름 스냅샷. changedBy(userId)는 항상 컨트롤러가 현재 사용자 스냅샷에서 주입하므로,
+     * 같은 스냅샷의 displayName을 사용한다(요청 스레드 내 보안 컨텍스트 기준). 미확인 시 null → 조회측 #id 폴백.
+     */
+    private String resolveChangedByName() {
+        return getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().displayName();
     }
 
     private void publishStockInRequested(PurchaseOrder po) {

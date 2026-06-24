@@ -15,6 +15,9 @@ import com.bbd.procurement.purchaseorder.domain.PurchaseOrderStatus;
 import com.bbd.procurement.purchaseorder.domain.event.StockInRequested;
 import com.bbd.procurement.shared.outbox.application.port.SaveOutboxEventPort;
 import com.bbd.procurement.shared.outbox.domain.OutboxEvent;
+import com.bbd.securitycore.application.model.CurrentUserSnapshotResult;
+import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,6 +35,8 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,8 +61,17 @@ class PurchaseOrderServicePublishTest {
     @Mock LoadPurchaseOrderHistoryPort loadPurchaseOrderHistoryPort;
     @Mock LoadPurchaseRequestNotificationPort loadPurchaseRequestNotificationPort;
     @Mock LoadVendorPort loadVendorPort;
+    @Mock GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
     @InjectMocks PurchaseOrderService sut;
+
+    @BeforeEach
+    void stubCurrentUser() {
+        // 완료(complete) 시 이력 기록의 변경자 이름 스냅샷용.
+        CurrentUserSnapshotResult snapshot = mock(CurrentUserSnapshotResult.class);
+        lenient().when(snapshot.displayName()).thenReturn("테스터");
+        lenient().when(getCurrentUserSnapshotUseCase.getCurrentUserSnapshot()).thenReturn(snapshot);
+    }
 
     private static final String PO_NUMBER = "PO-2026-000001";
 

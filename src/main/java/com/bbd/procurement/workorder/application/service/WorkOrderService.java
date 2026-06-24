@@ -13,9 +13,13 @@ import com.bbd.procurement.workorder.application.port.in.CompleteWorkOrderUseCas
 import com.bbd.procurement.workorder.application.port.in.CreateWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.GetWorkOrderQuery;
 import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
+import com.bbd.procurement.workorder.application.port.in.UpdateWorkOrderHeaderUseCase;
+import com.bbd.procurement.workorder.application.port.in.UpdateWorkOrderLinesUseCase;
 import com.bbd.procurement.workorder.application.port.in.command.CancelWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.CompleteWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.CreateWorkOrderCommand;
+import com.bbd.procurement.workorder.application.port.in.command.UpdateWorkOrderHeaderCommand;
+import com.bbd.procurement.workorder.application.port.in.command.UpdateWorkOrderLinesCommand;
 import com.bbd.procurement.workorder.application.port.in.command.WorkOrderLineItem;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderPort;
 import com.bbd.procurement.workorder.application.port.out.LoadWorkOrderRequestNotificationPort;
@@ -47,7 +51,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderUseCase, CompleteWorkOrderUseCase, CancelWorkOrderUseCase, GetWorkOrderQuery {
+public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderUseCase, CompleteWorkOrderUseCase, CancelWorkOrderUseCase, UpdateWorkOrderHeaderUseCase, UpdateWorkOrderLinesUseCase, GetWorkOrderQuery {
 
     private final SaveWorkOrderPort saveWorkOrderPort;
     private final LoadWorkOrderPort loadWorkOrderPort;
@@ -112,6 +116,26 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
         if (transitioned) {
             recordHistory(workOrder, WorkOrderChangeType.CANCELED, before, command.requesterId());
         }
+        return workOrder;
+    }
+
+    @Override
+    @Transactional
+    public WorkOrder updateHeader(UpdateWorkOrderHeaderCommand command) {
+        WorkOrder workOrder = findOrThrow(command.workOrderNumber());
+        String before = snapshot(workOrder);
+        workOrder.updateHeader(command.warehouseCode(), command.soNumber());
+        recordHistory(workOrder, WorkOrderChangeType.HEADER_UPDATED, before, command.updatedBy());
+        return workOrder;
+    }
+
+    @Override
+    @Transactional
+    public WorkOrder updateLines(UpdateWorkOrderLinesCommand command) {
+        WorkOrder workOrder = findOrThrow(command.workOrderNumber());
+        String before = snapshot(workOrder);
+        workOrder.replaceLines(toLines(command.lines()));
+        recordHistory(workOrder, WorkOrderChangeType.LINES_REPLACED, before, command.updatedBy());
         return workOrder;
     }
 

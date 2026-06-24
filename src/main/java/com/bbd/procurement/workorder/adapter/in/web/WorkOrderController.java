@@ -2,12 +2,16 @@ package com.bbd.procurement.workorder.adapter.in.web;
 
 import com.bbd.procurement.global.response.ApiResponse;
 import com.bbd.procurement.workorder.adapter.in.web.request.CreateWorkOrderRequest;
+import com.bbd.procurement.workorder.adapter.in.web.request.UpdateWorkOrderHeaderRequest;
+import com.bbd.procurement.workorder.adapter.in.web.request.UpdateWorkOrderLinesRequest;
 import com.bbd.procurement.workorder.adapter.in.web.response.WorkOrderResponse;
 import com.bbd.procurement.workorder.application.port.in.CancelWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CompleteWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.CreateWorkOrderUseCase;
 import com.bbd.procurement.workorder.application.port.in.GetWorkOrderQuery;
 import com.bbd.procurement.workorder.application.port.in.StartWorkOrderUseCase;
+import com.bbd.procurement.workorder.application.port.in.UpdateWorkOrderHeaderUseCase;
+import com.bbd.procurement.workorder.application.port.in.UpdateWorkOrderLinesUseCase;
 import com.bbd.procurement.workorder.application.port.in.command.CancelWorkOrderCommand;
 import com.bbd.procurement.workorder.application.port.in.command.CompleteWorkOrderCommand;
 import com.bbd.procurement.workorder.domain.WorkOrder;
@@ -35,6 +39,8 @@ public class WorkOrderController {
     private final StartWorkOrderUseCase startWorkOrderUseCase;
     private final CompleteWorkOrderUseCase completeWorkOrderUseCase;
     private final CancelWorkOrderUseCase cancelWorkOrderUseCase;
+    private final UpdateWorkOrderHeaderUseCase updateWorkOrderHeaderUseCase;
+    private final UpdateWorkOrderLinesUseCase updateWorkOrderLinesUseCase;
     private final GetWorkOrderQuery getWorkOrderQuery;
     private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
 
@@ -95,6 +101,38 @@ public class WorkOrderController {
         Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
         WorkOrder workOrder = cancelWorkOrderUseCase.cancel(new CancelWorkOrderCommand(workOrderNumber, userId));
         return ApiResponse.success("작업 지시가 취소되었습니다.", WorkOrderResponse.from(workOrder));
+    }
+
+    @Operation(
+            summary = "작업지시 헤더 수정",
+            description = "PLANNED 상태의 작업지시 헤더(생산창고·연계 SO) 수정 | 권한: HQ_MANAGER, HQ_STAFF"
+    )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
+    @PatchMapping("/{workOrderNumber}")
+    public ApiResponse<WorkOrderResponse> updateHeader(
+            @Parameter(description = "작업 지시 번호", example = "WO-2026-000001")
+            @PathVariable String workOrderNumber,
+            @Valid @RequestBody UpdateWorkOrderHeaderRequest request
+    ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
+        WorkOrder workOrder = updateWorkOrderHeaderUseCase.updateHeader(request.toCommand(workOrderNumber, userId));
+        return ApiResponse.success(WorkOrderResponse.from(workOrder));
+    }
+
+    @Operation(
+            summary = "작업지시 라인 교체",
+            description = "PLANNED 상태의 작업지시 라인 전체 교체 | 권한: HQ_MANAGER, HQ_STAFF"
+    )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
+    @PutMapping("/{workOrderNumber}/lines")
+    public ApiResponse<WorkOrderResponse> updateLines(
+            @Parameter(description = "작업 지시 번호", example = "WO-2026-000001")
+            @PathVariable String workOrderNumber,
+            @Valid @RequestBody UpdateWorkOrderLinesRequest request
+    ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
+        WorkOrder workOrder = updateWorkOrderLinesUseCase.updateLines(request.toCommand(workOrderNumber, userId));
+        return ApiResponse.success(WorkOrderResponse.from(workOrder));
     }
 
     @Operation(summary = "작업 지시 단건 조회")

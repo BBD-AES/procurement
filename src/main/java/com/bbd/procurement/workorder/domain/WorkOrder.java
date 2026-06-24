@@ -27,7 +27,7 @@ public class WorkOrder extends BaseTimeEntity {
     @Column(name = "work_order_number", nullable = false, unique = true, length = 20, updatable = false)
     private String workOrderNumber;
 
-    @Column(name = "so_number", nullable = false, length = 30, updatable = false)
+    @Column(name = "so_number", nullable = false, length = 30)
     private String soNumber;
 
     @Column(name = "warehouse_code", nullable = false, length = 20)
@@ -109,6 +109,31 @@ public class WorkOrder extends BaseTimeEntity {
         }
         this.status = WorkOrderStatus.CANCELED;
         return true;
+    }
+
+    public void updateHeader(String warehouseCode, String soNumber) {
+        ensurePlanned();
+        if (StringUtils.hasText(warehouseCode)) {
+            this.warehouseCode = warehouseCode;
+        }
+        if (StringUtils.hasText(soNumber)) {
+            this.soNumber = soNumber;
+        }
+    }
+
+    public void replaceLines(List<WorkOrderLine> newLines) {
+        ensurePlanned();
+        this.lines.clear();
+        if (newLines != null) {
+            newLines.forEach(this::attachLine);
+        }
+        recalculateTotal();
+    }
+
+    private void ensurePlanned() {
+        if (this.status != WorkOrderStatus.PLANNED) {
+            throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
+        }
     }
 
     private void attachLine(WorkOrderLine line) {

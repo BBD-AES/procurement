@@ -18,6 +18,6 @@ public class WorkOrderRequestNotificationService implements GetWorkOrderRequestN
     @Override
     @Transactional(readOnly = true)
     public List<WorkOrderRequestNotification> list() {
-        return loadWorkOrderRequestNotificationPort.findAllOrderByReceivedAtDesc();
+        return loadWorkOrderRequestNotificationPort.findActiveOrderByReceivedAtDesc();
     }
 }

@@ -24,8 +24,9 @@ public class WorkOrderRequestNotificationPersistenceAdapter
     }
 
     @Override
-    public List<WorkOrderRequestNotification> findAllOrderByReceivedAtDesc() {
-        return workOrderRequestNotificationJpaRepository.findAllWithLinesOrderByReceivedAtDesc();
+    public List<WorkOrderRequestNotification> findActiveOrderByReceivedAtDesc() {
+        return workOrderRequestNotificationJpaRepository.findByStatusInWithLinesOrderByReceivedAtDesc(
+                List.of(WorkOrderRequestStatus.PENDING, WorkOrderRequestStatus.PARTIAL));
     }
 
     @Override

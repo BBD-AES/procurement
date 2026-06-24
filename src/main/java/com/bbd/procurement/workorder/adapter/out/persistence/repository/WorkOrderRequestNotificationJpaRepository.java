@@ -13,8 +13,10 @@ import java.util.List;
 
 public interface WorkOrderRequestNotificationJpaRepository extends JpaRepository<WorkOrderRequestNotification, Long> {
 
-    @Query("select distinct n from WorkOrderRequestNotification n left join fetch n.lines order by n.receivedAt desc")
-    List<WorkOrderRequestNotification> findAllWithLinesOrderByReceivedAtDesc();
+    @Query("select distinct n from WorkOrderRequestNotification n left join fetch n.lines " +
+            "where n.status in :statuses order by n.receivedAt desc")
+    List<WorkOrderRequestNotification> findByStatusInWithLinesOrderByReceivedAtDesc(
+            @Param("statuses") Collection<WorkOrderRequestStatus> statuses);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from WorkOrderRequestNotification n " +

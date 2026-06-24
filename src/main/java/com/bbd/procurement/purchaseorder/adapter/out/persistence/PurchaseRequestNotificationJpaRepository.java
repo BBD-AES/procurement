@@ -13,8 +13,10 @@ import java.util.List;
 
 public interface PurchaseRequestNotificationJpaRepository extends JpaRepository<PurchaseRequestNotification, Long> {
 
-    @Query("select distinct n from PurchaseRequestNotification n left join fetch n.lines order by n.receivedAt desc")
-    List<PurchaseRequestNotification> findAllWithLinesOrderByReceivedAtDesc();
+    @Query("select distinct n from PurchaseRequestNotification n left join fetch n.lines " +
+            "where n.status in :statuses order by n.receivedAt desc")
+    List<PurchaseRequestNotification> findByStatusInWithLinesOrderByReceivedAtDesc(
+            @Param("statuses") Collection<PurchaseRequestStatus> statuses);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from PurchaseRequestNotification n " +

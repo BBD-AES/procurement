@@ -76,7 +76,7 @@ public class PurchaseRequestNotificationService implements HandlePurchaseRequest
     @Override
     @Transactional(readOnly = true)
     public List<PurchaseRequestNotification> list() {
-        return loadPurchaseRequestNotificationPort.findAllOrderByReceivedAtDesc();
+        return loadPurchaseRequestNotificationPort.findActiveOrderByReceivedAtDesc();
     }
 
     private String serializeWith(PurchaseRequested event, List<PurchaseRequested.Line> lines) {

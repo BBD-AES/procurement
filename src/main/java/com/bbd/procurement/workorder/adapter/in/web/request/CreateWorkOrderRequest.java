@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 
 public record CreateWorkOrderRequest(
-        @NotBlank(message = "soNumber는 필수입니다.")
+        // soNumber는 선택 — 안전재고 보충(made-to-stock) 생산은 SO 없이 생성 가능.
         @Size(max = 30, message = "soNumber는 30자 이내여야 합니다.")
         String soNumber,
 

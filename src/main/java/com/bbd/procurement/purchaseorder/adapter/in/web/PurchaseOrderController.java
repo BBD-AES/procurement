@@ -14,7 +14,9 @@ import com.bbd.procurement.purchaseorder.application.port.in.result.ProcurementS
 import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CompletePurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
+import com.bbd.procurement.notification.application.port.in.CreatePoNotificationUseCase;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
+import com.bbd.securitycore.application.model.CurrentUserSnapshotResult;
 import com.bbd.securitycore.application.port.in.GetCurrentUserSnapshotUseCase;
 import com.bbd.securitycore.domain.UserRole;
 import com.bbd.securitycore.idempotency.Idempotent;
@@ -23,12 +25,14 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @Tag(name="PurchaseOrder", description = "PO 관리 API")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/purchase-orders")
 @RequiredArgsConstructor
@@ -44,6 +48,7 @@ public class PurchaseOrderController {
     private final GetPurchaseOrderHistoryQuery getPurchaseOrderHistoryQuery;
     private final GetPurchaseOrderStatsQuery getPurchaseOrderStatsQuery;
     private final GetCurrentUserSnapshotUseCase getCurrentUserSnapshotUseCase;
+    private final CreatePoNotificationUseCase createPoNotificationUseCase;
     private final PurchaseOrderResponseAssembler responseAssembler;
 
     @Operation(
@@ -57,8 +62,20 @@ public class PurchaseOrderController {
     public ApiResponse<PurchaseOrderResponse> register(
             @Valid @RequestBody RegisterPurchaseOrderRequest request
             ) {
-        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
+        CurrentUserSnapshotResult snapshot = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot();
+        Long userId = snapshot.userId();
         PurchaseOrder po = registerPurchaseOrderUseCase.register(request.toCommand(userId));
+
+        // 스태프가 작성한 경우에만 매니저에게 알림(이슈 #79). 알림은 비핵심 read-model이므로
+        // 실패해도 이미 커밋된 PO 작성(201)을 막지 않는다(best-effort).
+        if (snapshot.role() == UserRole.HQ_STAFF) {
+            try {
+                createPoNotificationUseCase.notifyManagerOfPoCreation(po.getPoNumber(), userId);
+            } catch (Exception e) {
+                log.warn("PO 작성 알림 생성 실패 (PO는 정상 작성됨) poNumber={}", po.getPoNumber(), e);
+            }
+        }
+
         return ApiResponse.success("구매 주문이 작성되었습니다.",
                 PurchaseOrderResponse.from(po));
     }

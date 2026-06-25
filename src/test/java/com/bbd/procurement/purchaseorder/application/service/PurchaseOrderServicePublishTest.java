@@ -85,6 +85,7 @@ class PurchaseOrderServicePublishTest {
     @DisplayName("complete 시 StockInRequested가 OutboxEvent로 저장되고 메타/페이로드가 구성된다")
     void complete시_outbox에_저장된다() {
         PurchaseOrder po = draftPo();
+        po.markOrdered(1L); // 입고완료는 ORDERED 상태에서만 가능
         when(loadPurchaseOrderPort.findByPoNumber(PO_NUMBER)).thenReturn(Optional.of(po));
 
         sut.complete(new CompletePurchaseOrderCommand(PO_NUMBER, 99L));

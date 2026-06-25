@@ -18,9 +18,11 @@ public record PurchaseOrderResponse(
         LocalDate expectedArrival,
         String note,
         Long createdBy,
+        Long orderedBy,
         Long receivedBy,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
+        LocalDateTime orderedAt,
         LocalDateTime receivedAt,
         List<PurchaseOrderLineResponse> lines
 ) {
@@ -35,9 +37,11 @@ public record PurchaseOrderResponse(
                 po.getExpectedArrival(),
                 po.getNote(),
                 po.getCreatedBy(),
+                po.getOrderedBy(),
                 po.getReceivedBy(),
                 po.getCreatedAt(),
                 po.getUpdatedAt(),
+                po.getOrderedAt(),
                 po.getReceivedAt(),
                 po.getLines().stream()
                         .map(PurchaseOrderLineResponse::from)

@@ -13,6 +13,7 @@ import com.bbd.procurement.purchaseorder.application.port.in.*;
 import com.bbd.procurement.purchaseorder.application.port.in.result.ProcurementStats;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CancelPurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.application.port.in.command.CompletePurchaseOrderCommand;
+import com.bbd.procurement.purchaseorder.application.port.in.command.OrderPurchaseOrderCommand;
 import com.bbd.procurement.purchaseorder.domain.PurchaseOrder;
 import com.bbd.procurement.notification.application.port.in.CreatePoNotificationUseCase;
 import com.bbd.securitycore.adapter.in.annotation.RequireRole;
@@ -41,6 +42,7 @@ public class PurchaseOrderController {
     private final RegisterPurchaseOrderUseCase registerPurchaseOrderUseCase;
     private final UpdatePurchaseOrderHeaderUseCase updatePurchaseOrderHeaderUseCase;
     private final UpdatePurchaseOrderLinesUseCase updatePurchaseOrderLinesUseCase;
+    private final OrderPurchaseOrderUseCase orderPurchaseOrderUseCase;
     private final CompletePurchaseOrderUseCase completePurchaseOrderUseCase;
     private final CancelPurchaseOrderUseCase cancelPurchaseOrderUseCase;
     private final GetPurchaseOrderQuery getPurchaseOrderQuery;
@@ -113,11 +115,29 @@ public class PurchaseOrderController {
     }
 
     @Operation(
-            summary = "PO 완료",
-            description = "DRAFT 상태 PO 완료 처리(DRAFT -> RECEIVED) | 권한: HQ_MANAGER, HQ_STAFF"
+            summary = "PO 주문",
+            description = "DRAFT 상태 PO 주문 처리(DRAFT -> ORDERED). 주문 후에는 수정·취소 불가, 재고 반영은 아직 일어나지 않음 | 권한: HQ_MANAGER"
     )
     @RequireRole(UserRole.HQ_MANAGER)
-    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 완료 차단). 상태전이(DRAFT->RECEIVED) 보호
+    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 주문 차단). 상태전이(DRAFT->ORDERED) 보호
+    @PostMapping("/{poNumber}/order")
+    public ApiResponse<PurchaseOrderResponse> order(
+            @Parameter(description = "PO번호", example = "PO-2026-000001")
+            @PathVariable String poNumber
+    ) {
+        Long userId = getCurrentUserSnapshotUseCase.getCurrentUserSnapshot().userId();
+        PurchaseOrder po = orderPurchaseOrderUseCase.order(
+                new OrderPurchaseOrderCommand(poNumber, userId)
+        );
+        return ApiResponse.success("PO가 주문되었습니다.", PurchaseOrderResponse.from(po));
+    }
+
+    @Operation(
+            summary = "PO 입고완료",
+            description = "ORDERED 상태 PO 입고완료 처리(ORDERED -> RECEIVED). 이 시점에 재고 증가 요청(StockInRequested) 발행 | 권한: HQ_MANAGER, HQ_STAFF"
+    )
+    @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
+    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 입고 차단). 상태전이(ORDERED->RECEIVED) 보호
     @PostMapping("/{poNumber}/complete")
     public ApiResponse<PurchaseOrderResponse> complete(
             @Parameter(description = "PO번호", example = "PO-2026-000001")
@@ -127,7 +147,7 @@ public class PurchaseOrderController {
         PurchaseOrder po = completePurchaseOrderUseCase.complete(
                 new CompletePurchaseOrderCommand(poNumber, userId)
         );
-        return ApiResponse.success("PO가 완료되었습니다.", PurchaseOrderResponse.from(po));
+        return ApiResponse.success("PO가 입고완료되었습니다.", PurchaseOrderResponse.from(po));
     }
 
     @Operation(

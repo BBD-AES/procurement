@@ -29,41 +29,35 @@ class PurchaseOrderTest {
                 VALID_PO, "V001", "WH-HQ-001", "SO-1", null, "note", List.of(line), 1L, null);
     }
 
+    /** 라인 1개를 가진 ORDERED PO 생성 헬퍼(DRAFT → ORDERED). */
+    private PurchaseOrder orderedWithOneLine() {
+        PurchaseOrder po = draftWithOneLine();
+        po.markOrdered(1L);
+        return po;
+    }
+
     @Nested
-    @DisplayName("markReceived(입고완료 전이)")
-    class MarkReceived {
+    @DisplayName("markOrdered(주문 전이)")
+    class MarkOrdered {
 
         @Test
-        @DisplayName("DRAFT + 라인 보유 + receivedBy 정상 → RECEIVED로 전이된다")
-        void 정상_입고완료() {
+        @DisplayName("DRAFT + 라인 보유 + orderedBy 정상 → ORDERED로 전이된다")
+        void 정상_주문() {
             PurchaseOrder po = draftWithOneLine();
 
-            po.markReceived(99L);
+            po.markOrdered(7L);
 
-            assertThat(po.getStatus()).isEqualTo(PurchaseOrderStatus.RECEIVED);
-            assertThat(po.getReceivedBy()).isEqualTo(99L);
-            assertThat(po.getReceivedAt()).isNotNull();
+            assertThat(po.getStatus()).isEqualTo(PurchaseOrderStatus.ORDERED);
+            assertThat(po.getOrderedBy()).isEqualTo(7L);
+            assertThat(po.getOrderedAt()).isNotNull();
         }
 
         @Test
-        @DisplayName("이미 RECEIVED 상태면 PO_ALREADY_RECEIVED 예외")
-        void 이미_입고완료면_예외() {
-            PurchaseOrder po = draftWithOneLine();
-            po.markReceived(99L);
+        @DisplayName("DRAFT가 아닌 상태(ORDERED)에서 재주문하면 PO_INVALID_STATE_TRANSITION 예외")
+        void 비DRAFT_주문_차단() {
+            PurchaseOrder po = orderedWithOneLine();
 
-            assertThatThrownBy(() -> po.markReceived(99L))
-                    .isInstanceOf(ApiException.class)
-                    .extracting(e -> ((ApiException) e).getErrorCode())
-                    .isEqualTo(ErrorCode.PO_ALREADY_RECEIVED);
-        }
-
-        @Test
-        @DisplayName("DRAFT가 아닌 상태(CANCELED)에서는 PO_INVALID_STATE_TRANSITION 예외")
-        void 비DRAFT_전이_차단() {
-            PurchaseOrder po = draftWithOneLine();
-            po.cancel(); // DRAFT -> CANCELED
-
-            assertThatThrownBy(() -> po.markReceived(99L))
+            assertThatThrownBy(() -> po.markOrdered(7L))
                     .isInstanceOf(ApiException.class)
                     .extracting(e -> ((ApiException) e).getErrorCode())
                     .isEqualTo(ErrorCode.PO_INVALID_STATE_TRANSITION);
@@ -75,16 +69,67 @@ class PurchaseOrderTest {
             PurchaseOrder po = PurchaseOrder.create(
                     VALID_PO, "V001", "WH-HQ-001", null, null, "note", List.of(), 1L, null);
 
-            assertThatThrownBy(() -> po.markReceived(99L))
+            assertThatThrownBy(() -> po.markOrdered(7L))
                     .isInstanceOf(ApiException.class)
                     .extracting(e -> ((ApiException) e).getErrorCode())
                     .isEqualTo(ErrorCode.PO_LINE_REQUIRED);
         }
 
         @Test
+        @DisplayName("orderedBy가 null이면 PO_FIELD_INVALID 예외")
+        void orderedBy_누락이면_예외() {
+            PurchaseOrder po = draftWithOneLine();
+
+            assertThatThrownBy(() -> po.markOrdered(null))
+                    .isInstanceOf(ApiException.class)
+                    .extracting(e -> ((ApiException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.PO_FIELD_INVALID);
+        }
+    }
+
+    @Nested
+    @DisplayName("markReceived(입고완료 전이)")
+    class MarkReceived {
+
+        @Test
+        @DisplayName("ORDERED + 라인 보유 + receivedBy 정상 → RECEIVED로 전이된다")
+        void 정상_입고완료() {
+            PurchaseOrder po = orderedWithOneLine();
+
+            po.markReceived(99L);
+
+            assertThat(po.getStatus()).isEqualTo(PurchaseOrderStatus.RECEIVED);
+            assertThat(po.getReceivedBy()).isEqualTo(99L);
+            assertThat(po.getReceivedAt()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("이미 RECEIVED 상태면 PO_ALREADY_RECEIVED 예외")
+        void 이미_입고완료면_예외() {
+            PurchaseOrder po = orderedWithOneLine();
+            po.markReceived(99L);
+
+            assertThatThrownBy(() -> po.markReceived(99L))
+                    .isInstanceOf(ApiException.class)
+                    .extracting(e -> ((ApiException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.PO_ALREADY_RECEIVED);
+        }
+
+        @Test
+        @DisplayName("ORDERED가 아닌 상태(DRAFT)에서는 PO_INVALID_STATE_TRANSITION 예외")
+        void 비ORDERED_전이_차단() {
+            PurchaseOrder po = draftWithOneLine(); // 아직 주문 전(DRAFT)
+
+            assertThatThrownBy(() -> po.markReceived(99L))
+                    .isInstanceOf(ApiException.class)
+                    .extracting(e -> ((ApiException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.PO_INVALID_STATE_TRANSITION);
+        }
+
+        @Test
         @DisplayName("receivedBy가 null이면 PO_FIELD_INVALID 예외")
         void receivedBy_누락이면_예외() {
-            PurchaseOrder po = draftWithOneLine();
+            PurchaseOrder po = orderedWithOneLine();
 
             assertThatThrownBy(() -> po.markReceived(null))
                     .isInstanceOf(ApiException.class)
@@ -119,9 +164,20 @@ class PurchaseOrderTest {
         }
 
         @Test
+        @DisplayName("ORDERED 상태는 취소할 수 없다 → PO_INVALID_STATE_TRANSITION")
+        void ORDERED_취소불가() {
+            PurchaseOrder po = orderedWithOneLine();
+
+            assertThatThrownBy(po::cancel)
+                    .isInstanceOf(ApiException.class)
+                    .extracting(e -> ((ApiException) e).getErrorCode())
+                    .isEqualTo(ErrorCode.PO_INVALID_STATE_TRANSITION);
+        }
+
+        @Test
         @DisplayName("RECEIVED 상태는 취소할 수 없다 → PO_INVALID_STATE_TRANSITION")
         void RECEIVED_취소불가() {
-            PurchaseOrder po = draftWithOneLine();
+            PurchaseOrder po = orderedWithOneLine();
             po.markReceived(99L);
 
             assertThatThrownBy(po::cancel)

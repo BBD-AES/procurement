@@ -54,6 +54,12 @@ public class PurchaseOrder extends BaseTimeEntity {
     @Column(name = "created_by", nullable = false, length = 255, updatable = false)
     private Long createdBy;
 
+    @Column(name = "ordered_by")
+    private Long orderedBy;
+
+    @Column(name = "ordered_at")
+    private LocalDateTime orderedAt;
+
     @Column(name = "received_by", length = 255)
     private Long receivedBy;
 
@@ -117,11 +123,28 @@ public class PurchaseOrder extends BaseTimeEntity {
         recalculateTotal();
     }
 
+    /** 주문 전이: DRAFT → ORDERED. 공급사에 발주 확정. 이후 수정·취소 불가. 재고 반영은 아직 일어나지 않는다. */
+    public void markOrdered(Long orderedBy) {
+        if (this.status != PurchaseOrderStatus.DRAFT) {
+            throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
+        }
+        if (this.lines.isEmpty()) {
+            throw new ApiException(ErrorCode.PO_LINE_REQUIRED);
+        }
+        if (orderedBy == null) {
+            throw new ApiException(ErrorCode.PO_FIELD_INVALID);
+        }
+        this.status = PurchaseOrderStatus.ORDERED;
+        this.orderedBy = orderedBy;
+        this.orderedAt = LocalDateTime.now();
+    }
+
+    /** 입고완료 전이: ORDERED → RECEIVED. 이 시점에 재고 증가(StockInRequested)가 발행된다. */
     public void markReceived(Long receivedBy) {
         if (this.status == PurchaseOrderStatus.RECEIVED) {
             throw new ApiException(ErrorCode.PO_ALREADY_RECEIVED);
         }
-        if (this.status != PurchaseOrderStatus.DRAFT) {
+        if (this.status != PurchaseOrderStatus.ORDERED) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
         }
         if (this.lines.isEmpty()) {
@@ -136,7 +159,9 @@ public class PurchaseOrder extends BaseTimeEntity {
     }
 
     public boolean cancel() {
-        if (this.status == PurchaseOrderStatus.RECEIVED) {
+        // 취소는 DRAFT(작성중)에서만 가능. ORDERED(주문완료)·RECEIVED(입고완료)는 취소 불가.
+        if (this.status == PurchaseOrderStatus.ORDERED
+                || this.status == PurchaseOrderStatus.RECEIVED) {
             throw new ApiException(ErrorCode.PO_INVALID_STATE_TRANSITION);
         }
         if (this.status == PurchaseOrderStatus.CANCELED) {

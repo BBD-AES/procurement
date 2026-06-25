@@ -40,6 +40,7 @@ public class PurchaseOrderService implements
         RegisterPurchaseOrderUseCase,
         UpdatePurchaseOrderHeaderUseCase,
         UpdatePurchaseOrderLinesUseCase,
+        OrderPurchaseOrderUseCase,
         CompletePurchaseOrderUseCase,
         CancelPurchaseOrderUseCase,
         GetPurchaseOrderQuery,
@@ -128,6 +129,24 @@ public class PurchaseOrderService implements
         return po;
     }
 
+    /**
+     * 주문 전이(DRAFT → ORDERED). 공급사에 발주 확정. 재고 반영(StockInRequested)은 아직 하지 않는다.
+     * 실제 재고 증가/백오더 충당은 입고완료(complete) 시점에 일어난다.
+     */
+    @Override
+    @Transactional
+    public PurchaseOrder order(OrderPurchaseOrderCommand command) {
+        PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
+        String before = snapshot(po);
+        po.markOrdered(command.orderedBy());
+        recordHistory(po, PurchaseOrderChangeType.ORDERED, before, command.orderedBy());
+        return po;
+    }
+
+    /**
+     * 입고완료 전이(ORDERED → RECEIVED). 이 시점에 재고 증가(StockInRequested) outbox 발행 +
+     * 같은 soNumber 백오더 충당 + 이력(COMPLETED)을 한 트랜잭션으로 처리한다.
+     */
     @Override
     @Transactional
     public PurchaseOrder complete(CompletePurchaseOrderCommand command) {

@@ -18,6 +18,8 @@ public record PurchaseOrderSnapshot(
         LocalDate expectedArrival,
         String note,
         Long createdBy,
+        Long orderedBy,
+        LocalDateTime orderedAt,
         Long receivedBy,
         LocalDateTime receivedAt,
         List<LineSnapshot> lines
@@ -53,6 +55,8 @@ public record PurchaseOrderSnapshot(
                 po.getExpectedArrival(),
                 po.getNote(),
                 po.getCreatedBy(),
+                po.getOrderedBy(),
+                po.getOrderedAt(),
                 po.getReceivedBy(),
                 po.getReceivedAt(),
                 po.getLines().stream()

@@ -27,7 +27,8 @@ public class WorkOrder extends BaseTimeEntity {
     @Column(name = "work_order_number", nullable = false, unique = true, length = 20, updatable = false)
     private String workOrderNumber;
 
-    @Column(name = "so_number", nullable = false, length = 30)
+    // 연계 SO. 안전재고 보충(made-to-stock) 생산은 SO 없이도 생성 가능 → nullable.
+    @Column(name = "so_number", length = 30)
     private String soNumber;
 
     @Column(name = "warehouse_code", nullable = false, length = 20)
@@ -152,8 +153,8 @@ public class WorkOrder extends BaseTimeEntity {
         if (!StringUtils.hasText(workOrderNumber) || !workOrderNumber.matches("^WO-\\d{4}-\\d{6}$")) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }
-        if (!StringUtils.hasText(soNumber)
-        || !StringUtils.hasText(warehouseCode)
+        // soNumber는 선택(안전재고 보충 생산은 SO 없이 생성 가능).
+        if (!StringUtils.hasText(warehouseCode)
         || createdBy == null) {
             throw new ApiException(ErrorCode.WORK_ORDER_INVALID_STATE_TRANSITION);
         }

@@ -40,6 +40,11 @@ public class WorkOrderPersistenceAdapter implements SaveWorkOrderPort, LoadWorkO
     }
 
     @Override
+    public List<WorkOrder> findBySoNumber(String soNumber) {
+        return workOrderJpaRepository.findBySoNumberOrderByCreatedAtDesc(soNumber);
+    }
+
+    @Override
     public Map<WorkOrderStatus, Long> countByStatus() {
         Map<WorkOrderStatus, Long> counts = new EnumMap<>(WorkOrderStatus.class);
         workOrderJpaRepository.countGroupByStatus()

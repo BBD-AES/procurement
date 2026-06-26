@@ -199,15 +199,20 @@ public class PurchaseOrderController {
 
     @Operation(
             summary = "PO 목록 조회",
-            description = "전체 PO 요약 목록 조회 |  권한: HQ_MANAGER,HQ_STAFF"
+            description = "전체 PO 요약 목록 조회. soNumber 지정 시 해당 SO 연계 PO만(요청 알림 상세 역조회용) |  권한: HQ_MANAGER,HQ_STAFF"
     )
     @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping
-    public ApiResponse<List<PurchaseOrderSummaryResponse>> list() {
-        List<PurchaseOrderSummaryResponse> result =
-                listPurchaseOrderQuery.list().stream()
-                        .map(PurchaseOrderSummaryResponse::from)
-                        .toList();
+    public ApiResponse<List<PurchaseOrderSummaryResponse>> list(
+            @Parameter(description = "SO 번호로 필터(선택). 지정 시 해당 SO 연계 PO만 반환", example = "SO-2026-000001")
+            @RequestParam(required = false) String soNumber
+    ) {
+        List<PurchaseOrder> purchaseOrders = (soNumber == null || soNumber.isBlank())
+                ? listPurchaseOrderQuery.list()
+                : listPurchaseOrderQuery.listBySoNumber(soNumber);
+        List<PurchaseOrderSummaryResponse> result = purchaseOrders.stream()
+                .map(PurchaseOrderSummaryResponse::from)
+                .toList();
         return ApiResponse.success(result);
     }
 

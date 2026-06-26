@@ -14,6 +14,9 @@ public interface LoadPurchaseOrderPort {
 
     List<PurchaseOrder> findAll();
 
+    /** 특정 SO 연계 PO 목록(최신순). 요청 알림 상세 역조회용. */
+    List<PurchaseOrder> findBySoNumber(String soNumber);
+
     /** 발주(PO) 상태별 건수. 건수가 0인 상태는 포함되지 않을 수 있다. */
     Map<PurchaseOrderStatus, Long> countByStatus();
 }

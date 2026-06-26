@@ -72,6 +72,36 @@ public class WorkOrderRequestNotification {
         this.lines.add(line);
     }
 
+    /** 같은 sku 라인에 qty 만큼 작업지시(생성) 반영(FIFO). 실제 소진한 수량 반환. */
+    public int applyOrder(String sku, int qty) {
+        int remaining = qty;
+        for (WorkOrderRequestNotificationLine line : lines) {
+            if (remaining <= 0) {
+                break;
+            }
+            if (line.getSku().equals(sku)) {
+                remaining -= line.applyOrder(remaining);
+            }
+        }
+        recomputeStatus();
+        return qty - remaining;
+    }
+
+    /** 같은 sku 라인의 생산중 수량을 qty 만큼 해제(작업지시 취소, FIFO). 실제 해제한 수량 반환. */
+    public int releaseOrder(String sku, int qty) {
+        int remaining = qty;
+        for (WorkOrderRequestNotificationLine line : lines) {
+            if (remaining <= 0) {
+                break;
+            }
+            if (line.getSku().equals(sku)) {
+                remaining -= line.releaseOrder(remaining);
+            }
+        }
+        recomputeStatus();
+        return qty - remaining;
+    }
+
     public int applyFulfillment(String sku, int qty) {
         int remaining = qty;
         for (WorkOrderRequestNotificationLine line : lines) {
@@ -88,7 +118,9 @@ public class WorkOrderRequestNotification {
 
     public void recomputeStatus() {
         boolean allDone = lines.stream().allMatch(l -> l.getStatus() == WorkOrderRequestStatus.DONE);
-        boolean anyProgress = lines.stream().anyMatch(l -> l.getFulfilledQty() > 0);
+        // 생산중(ordered)·완료(fulfilled) 어느 쪽이든 진행이 있으면 PARTIAL — 전량 지시됐지만 완료 전인 주문도
+        // 목록(PENDING/PARTIAL)에 남아 "이미 작업지시함, 생산 대기 중"으로 보이게 한다(중복 지시 방지).
+        boolean anyProgress = lines.stream().anyMatch(l -> l.getFulfilledQty() > 0 || l.getOrderedQty() > 0);
         if (allDone && !lines.isEmpty()) {
             this.status = WorkOrderRequestStatus.DONE;
         } else if (anyProgress) {

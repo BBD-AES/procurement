@@ -16,9 +16,11 @@ public record PurchaseRequestNotificationResponse(
 ) {
     public record LineResponse(
             String sku,
-            int requestedQty,
-            int fulfilledQty,
-            int remainingQty,
+            int requestedQty,        // 요청 원수량
+            int orderedQty,          // 발주중(발주됐으나 미입고)
+            int fulfilledQty,        // 입고완료
+            int remainingQty,        // 미입고(발주중 + 미발주) = requested - fulfilled
+            int remainingToOrderQty, // 미발주 잔여(아직 발주해야 할 양) = requested - ordered - fulfilled
             PurchaseRequestStatus status
     ) {
     }
@@ -28,8 +30,10 @@ public record PurchaseRequestNotificationResponse(
                 .map(line -> new LineResponse(
                         line.getSku(),
                         line.getRequestedQty(),
+                        line.getOrderedQty(),
                         line.getFulfilledQty(),
                         line.remaining(),
+                        line.orderableRemaining(),
                         line.getStatus()))
                 .toList();
 

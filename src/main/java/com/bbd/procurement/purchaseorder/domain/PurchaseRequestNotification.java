@@ -72,7 +72,41 @@ public class PurchaseRequestNotification {
     }
 
     /**
-     * 같은 sku 라인에 qty 만큼 충당(FIFO는 라인 추가 순서). 실제 소진한 수량 반환.
+     * 같은 sku 라인에 qty 만큼 발주(ORDERED) 반영(FIFO는 라인 추가 순서). 실제 소진한 수량 반환.
+     */
+    public int applyOrder(String sku, int qty) {
+        int remaining = qty;
+        for (PurchaseRequestNotificationLine line : lines) {
+            if (remaining <= 0) {
+                break;
+            }
+            if (line.getSku().equals(sku)) {
+                remaining -= line.applyOrder(remaining);
+            }
+        }
+        recomputeStatus();
+        return qty - remaining;
+    }
+
+    /**
+     * 같은 sku 라인의 발주중 수량을 qty 만큼 해제(발주 취소, FIFO). 실제 해제한 수량 반환.
+     */
+    public int releaseOrder(String sku, int qty) {
+        int remaining = qty;
+        for (PurchaseRequestNotificationLine line : lines) {
+            if (remaining <= 0) {
+                break;
+            }
+            if (line.getSku().equals(sku)) {
+                remaining -= line.releaseOrder(remaining);
+            }
+        }
+        recomputeStatus();
+        return qty - remaining;
+    }
+
+    /**
+     * 같은 sku 라인에 qty 만큼 입고완료 충당(FIFO는 라인 추가 순서). 실제 소진한 수량 반환.
      * 충당 후 헤더 status 재계산.
      */
     public int applyFulfillment(String sku, int qty) {
@@ -91,7 +125,9 @@ public class PurchaseRequestNotification {
 
     public void recomputeStatus() {
         boolean allDone = lines.stream().allMatch(l -> l.getStatus() == PurchaseRequestStatus.DONE);
-        boolean anyProgress = lines.stream().anyMatch(l -> l.getFulfilledQty() > 0);
+        // 발주중(ordered)·입고완료(fulfilled) 어느 쪽이든 진행이 있으면 PARTIAL — 전량 발주됐지만 입고 전인 주문도
+        // 목록(PENDING/PARTIAL)에 남아 "이미 발주함, 입고 대기 중"으로 보이게 한다(중복 발주 방지).
+        boolean anyProgress = lines.stream().anyMatch(l -> l.getFulfilledQty() > 0 || l.getOrderedQty() > 0);
         if (allDone && !lines.isEmpty()) {
             this.status = PurchaseRequestStatus.DONE;
         } else if (anyProgress) {

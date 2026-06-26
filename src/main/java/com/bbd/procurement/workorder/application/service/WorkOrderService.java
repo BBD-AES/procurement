@@ -47,6 +47,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.UUID;
@@ -86,7 +87,10 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
             WorkOrder workOrder = WorkOrder.create(
                     number, command.soNumber(), command.warehouseCode(), lines, command.createdBy(), command.requestId()
             );
-            return saveWorkOrderPort.save(workOrder);
+            WorkOrder saved = saveWorkOrderPort.save(workOrder);
+            // 신규 생성 경로에서만 "생산중(orderedQty)" 누적(replay 조기반환 시 제외 → 이중 반영 방지).
+            applyRequestOrder(saved);
+            return saved;
         } catch (DataIntegrityViolationException e) {
             // 거의 동시에 들어온 요청들이 사전 조회를 모두 통과한 경우(TOCTOU):
             // DB의 uq_work_order_request UNIQUE 제약이 두 번째 INSERT를 거부한다 → 409로 응답.
@@ -119,6 +123,8 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
         String before = snapshot(workOrder);
         boolean transitioned = workOrder.cancel();
         if (transitioned) {
+            // 취소는 PLANNED/IN_PRODUCTION 에서만 성립(COMPLETED는 예외) → 이 WO 수량은 아직 "생산중"에 있다. 해제.
+            releaseRequestOrder(workOrder);
             recordHistory(workOrder, WorkOrderChangeType.CANCELED, before, command.requesterId());
         }
         return workOrder;
@@ -129,7 +135,14 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     public WorkOrder updateHeader(UpdateWorkOrderHeaderCommand command) {
         WorkOrder workOrder = findOrThrow(command.workOrderNumber());
         String before = snapshot(workOrder);
+        // soNumber 가 바뀌면 옛 SO 에 쌓인 "생산중"을 해제하고 새 SO 로 옮긴다(유령 생산중 방지).
+        String oldSoNumber = workOrder.getSoNumber();
+        Map<String, Integer> bySku = aggregateBySku(workOrder);
         workOrder.updateHeader(command.warehouseCode(), command.soNumber());
+        if (!Objects.equals(oldSoNumber, workOrder.getSoNumber())) {
+            releaseOrderFor(oldSoNumber, bySku);
+            applyOrderFor(workOrder.getSoNumber(), bySku);
+        }
         recordHistory(workOrder, WorkOrderChangeType.HEADER_UPDATED, before, command.updatedBy());
         return workOrder;
     }
@@ -139,7 +152,11 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     public WorkOrder updateLines(UpdateWorkOrderLinesCommand command) {
         WorkOrder workOrder = findOrThrow(command.workOrderNumber());
         String before = snapshot(workOrder);
+        // 라인 교체 전 "생산중" 기여분을 해제하고, 교체 후 새 라인 수량으로 다시 반영(PLANNED 단계라 입고완료 없음).
+        Map<String, Integer> oldBySku = aggregateBySku(workOrder);
         workOrder.replaceLines(toLines(command.lines()));
+        releaseOrderFor(workOrder.getSoNumber(), oldBySku);
+        applyOrderFor(workOrder.getSoNumber(), aggregateBySku(workOrder));
         recordHistory(workOrder, WorkOrderChangeType.LINES_REPLACED, before, command.updatedBy());
         return workOrder;
     }
@@ -152,6 +169,11 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
     @Override
     public List<WorkOrder> list() {
         return loadWorkOrderPort.findAll();
+    }
+
+    @Override
+    public List<WorkOrder> listBySoNumber(String soNumber) {
+        return loadWorkOrderPort.findBySoNumber(soNumber);
     }
 
     @Override
@@ -258,6 +280,62 @@ public class WorkOrderService implements CreateWorkOrderUseCase, StartWorkOrderU
                 LocalDateTime.now()
         );
         saveOutboxEventPort.save(outboxEvent);
+    }
+
+    /** 작업지시 라인을 같은 soNumber 활성 생산요청 알림에 FIFO로 "생산중(orderedQty)"으로 반영. */
+    private void applyRequestOrder(WorkOrder workOrder) {
+        applyOrderFor(workOrder.getSoNumber(), aggregateBySku(workOrder));
+    }
+
+    /** 작업지시 라인만큼 같은 soNumber 활성 생산요청 알림의 "생산중(orderedQty)"을 FIFO로 해제. */
+    private void releaseRequestOrder(WorkOrder workOrder) {
+        releaseOrderFor(workOrder.getSoNumber(), aggregateBySku(workOrder));
+    }
+
+    /**
+     * (soNumber, sku→수량)을 같은 soNumber 활성(PENDING/PARTIAL) 알림에 FIFO로 생산중 반영.
+     * 비관적 락 조회(findActiveBySoNumber)로 동시성 보호된다.
+     */
+    private void applyOrderFor(String soNumber, Map<String, Integer> bySku) {
+        if (!StringUtils.hasText(soNumber) || bySku.isEmpty()) {
+            return;
+        }
+        List<WorkOrderRequestNotification> active =
+                loadWorkOrderRequestNotificationPort.findActiveBySoNumber(soNumber);
+        bySku.forEach((sku, qty) -> {
+            int remaining = qty;
+            for (WorkOrderRequestNotification notification : active) {
+                if (remaining <= 0) {
+                    break;
+                }
+                remaining -= notification.applyOrder(sku, remaining);
+            }
+        });
+    }
+
+    /** (soNumber, sku→수량)만큼 같은 soNumber 활성 알림의 생산중을 FIFO로 해제. */
+    private void releaseOrderFor(String soNumber, Map<String, Integer> bySku) {
+        if (!StringUtils.hasText(soNumber) || bySku.isEmpty()) {
+            return;
+        }
+        List<WorkOrderRequestNotification> active =
+                loadWorkOrderRequestNotificationPort.findActiveBySoNumber(soNumber);
+        bySku.forEach((sku, qty) -> {
+            int remaining = qty;
+            for (WorkOrderRequestNotification notification : active) {
+                if (remaining <= 0) {
+                    break;
+                }
+                remaining -= notification.releaseOrder(sku, remaining);
+            }
+        });
+    }
+
+    private static Map<String, Integer> aggregateBySku(WorkOrder workOrder) {
+        return workOrder.getLines().stream()
+                .collect(Collectors.groupingBy(
+                        WorkOrderLine::getSku,
+                        Collectors.summingInt(WorkOrderLine::getQuantity)));
     }
 
     /**

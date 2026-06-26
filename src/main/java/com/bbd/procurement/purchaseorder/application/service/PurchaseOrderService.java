@@ -139,6 +139,7 @@ public class PurchaseOrderService implements
         PurchaseOrder po = findPurchaseOrderOrThrow(command.poNumber());
         String before = snapshot(po);
         po.markOrdered(command.orderedBy());
+        applyRequestOrder(po);
         recordHistory(po, PurchaseOrderChangeType.ORDERED, before, command.orderedBy());
         return po;
     }
@@ -179,6 +180,11 @@ public class PurchaseOrderService implements
     @Override
     public List<PurchaseOrder> list() {
         return loadPurchaseOrderPort.findAll();
+    }
+
+    @Override
+    public List<PurchaseOrder> listBySoNumber(String soNumber) {
+        return loadPurchaseOrderPort.findBySoNumber(soNumber);
     }
 
     /**
@@ -286,6 +292,35 @@ public class PurchaseOrderService implements
         );
 
         saveOutboxEventPort.save(outboxEvent);
+    }
+
+    /**
+     * 주문(ORDERED)된 PO 라인을 sku별 수량으로 집계해, 같은 soNumber의 활성(PENDING/PARTIAL)
+     * 요청 알림 라인에 FIFO로 "발주중(orderedQty)"으로 반영한다. 이미 발주/입고된 만큼은 더 쌓지 않는다.
+     * 입고완료(applyRequestFulfillment)와 동일하게 비관적 락 조회(findActiveBySoNumber)로 동시성 보호된다.
+     */
+    private void applyRequestOrder(PurchaseOrder po) {
+        if (!StringUtils.hasText(po.getSoNumber())) {
+            return;
+        }
+
+        Map<String, Integer> orderedBySku = po.getLines().stream()
+                .collect(Collectors.groupingBy(
+                        PurchaseOrderLine::getSku,
+                        Collectors.summingInt(PurchaseOrderLine::getQuantity)));
+
+        List<PurchaseRequestNotification> active =
+                loadPurchaseRequestNotificationPort.findActiveBySoNumber(po.getSoNumber());
+
+        orderedBySku.forEach((sku, qty) -> {
+            int remaining = qty;
+            for (PurchaseRequestNotification notification : active) {
+                if (remaining <= 0) {
+                    break;
+                }
+                remaining -= notification.applyOrder(sku, remaining);
+            }
+        });
     }
 
     /**

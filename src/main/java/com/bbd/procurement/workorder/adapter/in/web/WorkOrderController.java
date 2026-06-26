@@ -168,11 +168,18 @@ public class WorkOrderController {
         return ApiResponse.success(result);
     }
 
-    @Operation(summary = "작업 지시 목록 조회")
+    @Operation(summary = "작업 지시 목록 조회",
+            description = "전체 작업지시 목록. soNumber 지정 시 해당 SO 연계 작업지시만(생산요청 알림 상세 역조회용)")
     @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
     @GetMapping
-    public ApiResponse<List<WorkOrderResponse>> list() {
-        List<WorkOrderResponse> result = getWorkOrderQuery.list().stream()
+    public ApiResponse<List<WorkOrderResponse>> list(
+            @Parameter(description = "SO 번호로 필터(선택). 지정 시 해당 SO 연계 작업지시만 반환", example = "SO-2026-000001")
+            @RequestParam(required = false) String soNumber
+    ) {
+        List<WorkOrder> workOrders = (soNumber == null || soNumber.isBlank())
+                ? getWorkOrderQuery.list()
+                : getWorkOrderQuery.listBySoNumber(soNumber);
+        List<WorkOrderResponse> result = workOrders.stream()
                 .map(WorkOrderResponse::from)
                 .toList();
         return ApiResponse.success(result);

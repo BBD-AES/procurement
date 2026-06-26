@@ -8,4 +8,7 @@ public interface ListPurchaseOrderQuery {
 
     List<PurchaseOrder> list();
 
+    /** 특정 SO 연계 PO 목록(최신순). 요청 알림 상세에서 역조회용. */
+    List<PurchaseOrder> listBySoNumber(String soNumber);
+
 }

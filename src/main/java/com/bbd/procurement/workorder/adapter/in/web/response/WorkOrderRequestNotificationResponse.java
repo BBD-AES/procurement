@@ -16,9 +16,11 @@ public record WorkOrderRequestNotificationResponse(
 ) {
     public record LineResponse(
             String sku,
-            int requestedQty,
-            int fulfilledQty,
-            int remainingQty,
+            int requestedQty,        // 요청 원수량
+            int orderedQty,          // 생산중(작업지시됐으나 미완료)
+            int fulfilledQty,        // 생산완료
+            int remainingQty,        // 미완료(생산중 + 미지시) = requested - fulfilled
+            int remainingToOrderQty, // 미지시 잔여(아직 작업지시해야 할 양) = requested - ordered - fulfilled
             WorkOrderRequestStatus status
     ) {
     }
@@ -28,8 +30,10 @@ public record WorkOrderRequestNotificationResponse(
                 .map(line -> new LineResponse(
                         line.getSku(),
                         line.getRequestedQty(),
+                        line.getOrderedQty(),
                         line.getFulfilledQty(),
                         line.remaining(),
+                        line.orderableRemaining(),
                         line.getStatus()))
                 .toList();
 

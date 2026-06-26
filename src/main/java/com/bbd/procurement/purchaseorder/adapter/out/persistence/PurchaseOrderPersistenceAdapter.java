@@ -39,6 +39,11 @@ public class PurchaseOrderPersistenceAdapter implements SavePurchaseOrderPort, L
     }
 
     @Override
+    public List<PurchaseOrder> findBySoNumber(String soNumber) {
+        return purchaseOrderJpaRepository.findBySoNumberOrderByCreatedAtDesc(soNumber);
+    }
+
+    @Override
     public Map<PurchaseOrderStatus, Long> countByStatus() {
         Map<PurchaseOrderStatus, Long> counts = new EnumMap<>(PurchaseOrderStatus.class);
         purchaseOrderJpaRepository.countGroupByStatus()

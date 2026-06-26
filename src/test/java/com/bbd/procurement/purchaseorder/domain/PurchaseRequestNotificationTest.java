@@ -1,5 +1,6 @@
 package com.bbd.procurement.purchaseorder.domain;
 
+import com.bbd.procurement.global.error.ApiException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * 구매요청 알림 라인의 4단계 수량 추적(요청/발주중/입고완료/미발주잔여) 도메인 단위테스트.
@@ -151,6 +154,82 @@ class PurchaseRequestNotificationTest {
             assertEquals(60, line.getFulfilledQty());
             assertEquals(40, line.orderableRemaining());
             assertEquals(PurchaseRequestStatus.PARTIAL, n.getStatus());
+        }
+    }
+
+    @Nested
+    @DisplayName("claim — 처리중 선점")
+    class Claim {
+
+        private static final long USER_A = 1L;
+        private static final long USER_B = 2L;
+
+        @Test
+        @DisplayName("미점유 요청은 선점되고 담당자가 기록된다")
+        void 미점유_선점() {
+            PurchaseRequestNotification n = notificationWithLine("A-001", 100);
+            LocalDateTime now = LocalDateTime.now();
+
+            n.claim(USER_A, "담당자A", now, now.minusMinutes(30));
+
+            assertEquals(USER_A, n.getClaimedBy());
+            assertEquals("담당자A", n.getClaimedByName());
+            assertEquals(now, n.getClaimedAt());
+        }
+
+        @Test
+        @DisplayName("다른 담당자가 유효하게 처리중이면 선점 거부(REQUEST_ALREADY_CLAIMED)")
+        void 타인_점유중이면_거부() {
+            PurchaseRequestNotification n = notificationWithLine("A-001", 100);
+            LocalDateTime now = LocalDateTime.now();
+            n.claim(USER_A, "담당자A", now, now.minusMinutes(30));
+
+            assertThrows(ApiException.class,
+                    () -> n.claim(USER_B, "담당자B", now, now.minusMinutes(30)));
+            assertEquals(USER_A, n.getClaimedBy()); // 그대로 유지
+        }
+
+        @Test
+        @DisplayName("같은 담당자는 재선점(갱신) 가능")
+        void 본인_재선점() {
+            PurchaseRequestNotification n = notificationWithLine("A-001", 100);
+            LocalDateTime t1 = LocalDateTime.now().minusMinutes(5);
+            n.claim(USER_A, "담당자A", t1, t1.minusMinutes(30));
+
+            LocalDateTime t2 = LocalDateTime.now();
+            n.claim(USER_A, "담당자A", t2, t2.minusMinutes(30));
+
+            assertEquals(USER_A, n.getClaimedBy());
+            assertEquals(t2, n.getClaimedAt());
+        }
+
+        @Test
+        @DisplayName("만료된(stale) 클레임은 다른 담당자가 takeover 가능")
+        void 만료_클레임_takeover() {
+            PurchaseRequestNotification n = notificationWithLine("A-001", 100);
+            LocalDateTime old = LocalDateTime.now().minusMinutes(40);
+            n.claim(USER_A, "담당자A", old, old.minusMinutes(30));
+
+            LocalDateTime now = LocalDateTime.now();
+            n.claim(USER_B, "담당자B", now, now.minusMinutes(30)); // A의 클레임(40분 전) < 만료기준 → takeover
+
+            assertEquals(USER_B, n.getClaimedBy());
+            assertEquals(now, n.getClaimedAt());
+        }
+
+        @Test
+        @DisplayName("해제는 본인만 가능, 타인 해제는 거부")
+        void 해제_권한() {
+            PurchaseRequestNotification n = notificationWithLine("A-001", 100);
+            LocalDateTime now = LocalDateTime.now();
+            n.claim(USER_A, "담당자A", now, now.minusMinutes(30));
+
+            assertThrows(ApiException.class, () -> n.releaseClaim(USER_B));
+
+            n.releaseClaim(USER_A);
+            assertNull(n.getClaimedBy());
+            assertNull(n.getClaimedByName());
+            assertNull(n.getClaimedAt());
         }
     }
 

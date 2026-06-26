@@ -32,6 +32,11 @@ public enum ErrorCode {
     PO_DUPLICATE_REQUEST(HttpStatus.CONFLICT, "P007", "이미 접수된 주문입니다."),
     PO_FIELD_INVALID(HttpStatus.BAD_REQUEST, "P008", "PO 필드 값이 올바르지 않습니다."),
 
+    // 요청 알림 클레임(처리중) — 구매/생산요청 공통
+    REQUEST_NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND, "R001", "요청 알림을 찾을 수 없습니다."),
+    REQUEST_ALREADY_CLAIMED(HttpStatus.CONFLICT, "R002", "이미 다른 담당자가 처리 중인 요청입니다."),
+    REQUEST_CLAIM_FORBIDDEN(HttpStatus.FORBIDDEN, "R003", "본인이 처리 중인 요청만 해제할 수 있습니다."),
+
     // Item
     ITEM_NOT_FOUND(HttpStatus.NOT_FOUND, "I001", "해당 SKU의 부품을 찾을 수 없습니다."),
     ITEM_SERVICE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "I002", "Item 서비스 호출에 실패했습니다."),

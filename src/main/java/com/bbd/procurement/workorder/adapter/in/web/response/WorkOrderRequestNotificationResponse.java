@@ -12,6 +12,9 @@ public record WorkOrderRequestNotificationResponse(
         String warehouseCode,
         WorkOrderRequestStatus status,
         LocalDateTime receivedAt,
+        Long claimedBy,          // 처리중 담당자 userId (null=미점유)
+        String claimedByName,    // 처리중 담당자 표시명
+        LocalDateTime claimedAt, // 클레임 시각
         List<LineResponse> lines
 ) {
     public record LineResponse(
@@ -43,6 +46,9 @@ public record WorkOrderRequestNotificationResponse(
                 notification.getWarehouseCode(),
                 notification.getStatus(),
                 notification.getReceivedAt(),
+                notification.getClaimedBy(),
+                notification.getClaimedByName(),
+                notification.getClaimedAt(),
                 lines
         );
     }

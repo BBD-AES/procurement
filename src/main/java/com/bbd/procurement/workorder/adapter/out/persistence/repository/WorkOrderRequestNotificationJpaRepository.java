@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface WorkOrderRequestNotificationJpaRepository extends JpaRepository<WorkOrderRequestNotification, Long> {
 
@@ -17,6 +18,12 @@ public interface WorkOrderRequestNotificationJpaRepository extends JpaRepository
             "where n.status in :statuses order by n.receivedAt desc")
     List<WorkOrderRequestNotification> findByStatusInWithLinesOrderByReceivedAtDesc(
             @Param("statuses") Collection<WorkOrderRequestStatus> statuses);
+
+    /** 클레임(처리중 선점)용 — eventId로 라인까지 fetch + 쓰기 락(동시 클레임 직렬화). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select distinct n from WorkOrderRequestNotification n left join fetch n.lines " +
+            "where n.eventId = :eventId")
+    Optional<WorkOrderRequestNotification> findByEventIdForUpdate(@Param("eventId") String eventId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from WorkOrderRequestNotification n " +

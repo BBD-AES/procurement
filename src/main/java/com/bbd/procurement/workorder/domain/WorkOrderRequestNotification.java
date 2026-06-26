@@ -1,5 +1,7 @@
 package com.bbd.procurement.workorder.domain;
 
+import com.bbd.procurement.global.error.ApiException;
+import com.bbd.procurement.global.error.ErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -9,6 +11,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "work_order_request_notification")
@@ -42,6 +45,16 @@ public class WorkOrderRequestNotification {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    // "처리중" 클레임 — 한 담당자가 선점하면 다른 담당자에게 처리중으로 보임(중복 작업지시 방지).
+    @Column(name = "claimed_by")
+    private Long claimedBy;
+
+    @Column(name = "claimed_by_name", length = 100)
+    private String claimedByName;
+
+    @Column(name = "claimed_at")
+    private LocalDateTime claimedAt;
 
     @OneToMany(mappedBy = "notification", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<WorkOrderRequestNotificationLine> lines = new ArrayList<>();
@@ -128,5 +141,36 @@ public class WorkOrderRequestNotification {
         } else {
             this.status = WorkOrderRequestStatus.PENDING;
         }
+    }
+
+    /**
+     * 이 요청을 담당자(userId)가 처리중으로 선점한다.
+     * 다른 담당자가 이미 선점했고 그 클레임이 아직 유효(staleThreshold 이후)하면 거부한다.
+     * (같은 담당자의 재선점, 또는 만료된 클레임의 takeover 는 허용)
+     */
+    public void claim(Long userId, String userName, LocalDateTime now, LocalDateTime staleThreshold) {
+        boolean heldByOther = claimedBy != null
+                && !claimedBy.equals(userId)
+                && claimedAt != null
+                && claimedAt.isAfter(staleThreshold);
+        if (heldByOther) {
+            throw new ApiException(ErrorCode.REQUEST_ALREADY_CLAIMED);
+        }
+        this.claimedBy = userId;
+        this.claimedByName = userName;
+        this.claimedAt = now;
+    }
+
+    /** 클레임 해제. 본인(claimedBy)만 해제할 수 있다. 미점유면 no-op. */
+    public void releaseClaim(Long userId) {
+        if (claimedBy == null) {
+            return;
+        }
+        if (!Objects.equals(claimedBy, userId)) {
+            throw new ApiException(ErrorCode.REQUEST_CLAIM_FORBIDDEN);
+        }
+        this.claimedBy = null;
+        this.claimedByName = null;
+        this.claimedAt = null;
     }
 }

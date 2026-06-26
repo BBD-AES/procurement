@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -24,6 +25,11 @@ public class PurchaseRequestNotificationPersistenceAdapter implements SavePurcha
     public List<PurchaseRequestNotification> findActiveOrderByReceivedAtDesc() {
         return purchaseRequestNotificationJpaRepository.findByStatusInWithLinesOrderByReceivedAtDesc(
                 List.of(PurchaseRequestStatus.PENDING, PurchaseRequestStatus.PARTIAL));
+    }
+
+    @Override
+    public Optional<PurchaseRequestNotification> findByEventIdForUpdate(String eventId) {
+        return purchaseRequestNotificationJpaRepository.findByEventIdForUpdate(eventId);
     }
 
     @Override

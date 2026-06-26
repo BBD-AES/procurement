@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -27,6 +28,11 @@ public class WorkOrderRequestNotificationPersistenceAdapter
     public List<WorkOrderRequestNotification> findActiveOrderByReceivedAtDesc() {
         return workOrderRequestNotificationJpaRepository.findByStatusInWithLinesOrderByReceivedAtDesc(
                 List.of(WorkOrderRequestStatus.PENDING, WorkOrderRequestStatus.PARTIAL));
+    }
+
+    @Override
+    public Optional<WorkOrderRequestNotification> findByEventIdForUpdate(String eventId) {
+        return workOrderRequestNotificationJpaRepository.findByEventIdForUpdate(eventId);
     }
 
     @Override

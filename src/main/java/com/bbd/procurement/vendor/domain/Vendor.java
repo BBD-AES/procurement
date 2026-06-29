@@ -33,8 +33,8 @@ public class Vendor extends BaseTimeEntity {
     @Column(name = "active", nullable = false)
     private boolean active;
 
-    // 등록 멱등키: 클라이언트가 클릭당 생성하는 UUID(헤더 Idempotency-Key 우선, 없으면 본문 requestId).
-    // 동일 키 재요청은 기존 공급사를 replay하며, 동시 경합은 uq_vendor_request UNIQUE 제약으로 차단한다.
+    // 등록 멱등키: 클라이언트가 클릭당 생성하는 UUID(헤더 Idempotency-Key 우선, 없으면 본문 requestId)
+    // 동일 키 재요청은 기존 공급사를 replay하며, 동시 경합은 uq_vendor_request UNIQUE 제약으로 차단
     @Column(name = "request_id", length = 64, updatable = false)
     private String requestId;
 

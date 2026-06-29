@@ -28,8 +28,8 @@ public class PurchaseRequestNotificationPersistenceAdapter implements SavePurcha
     }
 
     @Override
-    public Optional<PurchaseRequestNotification> findByEventIdForUpdate(String eventId) {
-        return purchaseRequestNotificationJpaRepository.findByEventIdForUpdate(eventId);
+    public Optional<PurchaseRequestNotification> findByEventId(String eventId) {
+        return purchaseRequestNotificationJpaRepository.findByEventId(eventId);
     }
 
     @Override

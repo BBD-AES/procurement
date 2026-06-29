@@ -21,7 +21,7 @@ public class WorkOrderRequestNotificationService
         implements GetWorkOrderRequestNotificationQuery, ClaimWorkOrderRequestNotificationUseCase {
 
     /** 이 시간보다 오래된 클레임은 만료로 보고 다른 담당자가 takeover 할 수 있다. */
-    private static final Duration CLAIM_TTL = Duration.ofMinutes(30);
+    private static final Duration CLAIM_TTL = Duration.ofMinutes(10);
 
     private final LoadWorkOrderRequestNotificationPort loadWorkOrderRequestNotificationPort;
     private final SaveWorkOrderRequestNotificationPort saveWorkOrderRequestNotificationPort;
@@ -35,7 +35,7 @@ public class WorkOrderRequestNotificationService
     @Override
     @Transactional
     public WorkOrderRequestNotification claim(String eventId, Long userId, String userName) {
-        WorkOrderRequestNotification notification = loadWorkOrderRequestNotificationPort.findByEventIdForUpdate(eventId)
+        WorkOrderRequestNotification notification = loadWorkOrderRequestNotificationPort.findByEventId(eventId)
                 .orElseThrow(() -> new ApiException(ErrorCode.REQUEST_NOTIFICATION_NOT_FOUND));
         LocalDateTime now = LocalDateTime.now();
         notification.claim(userId, userName, now, now.minus(CLAIM_TTL));
@@ -46,7 +46,7 @@ public class WorkOrderRequestNotificationService
     @Override
     @Transactional
     public WorkOrderRequestNotification release(String eventId, Long userId) {
-        WorkOrderRequestNotification notification = loadWorkOrderRequestNotificationPort.findByEventIdForUpdate(eventId)
+        WorkOrderRequestNotification notification = loadWorkOrderRequestNotificationPort.findByEventId(eventId)
                 .orElseThrow(() -> new ApiException(ErrorCode.REQUEST_NOTIFICATION_NOT_FOUND));
         notification.releaseClaim(userId);
         saveWorkOrderRequestNotificationPort.save(notification);

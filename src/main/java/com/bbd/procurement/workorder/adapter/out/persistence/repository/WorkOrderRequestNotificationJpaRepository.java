@@ -19,11 +19,10 @@ public interface WorkOrderRequestNotificationJpaRepository extends JpaRepository
     List<WorkOrderRequestNotification> findByStatusInWithLinesOrderByReceivedAtDesc(
             @Param("statuses") Collection<WorkOrderRequestStatus> statuses);
 
-    /** 클레임(처리중 선점)용 — eventId로 라인까지 fetch + 쓰기 락(동시 클레임 직렬화). */
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    /** 클레임(처리중 선점)용 — eventId로 라인까지 fetch. 동시 선점 충돌은 @Version 낙관적 락으로 감지(락 없음). */
     @Query("select distinct n from WorkOrderRequestNotification n left join fetch n.lines " +
             "where n.eventId = :eventId")
-    Optional<WorkOrderRequestNotification> findByEventIdForUpdate(@Param("eventId") String eventId);
+    Optional<WorkOrderRequestNotification> findByEventId(@Param("eventId") String eventId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select n from WorkOrderRequestNotification n " +

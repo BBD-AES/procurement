@@ -31,8 +31,8 @@ public class WorkOrderRequestNotificationPersistenceAdapter
     }
 
     @Override
-    public Optional<WorkOrderRequestNotification> findByEventIdForUpdate(String eventId) {
-        return workOrderRequestNotificationJpaRepository.findByEventIdForUpdate(eventId);
+    public Optional<WorkOrderRequestNotification> findByEventId(String eventId) {
+        return workOrderRequestNotificationJpaRepository.findByEventId(eventId);
     }
 
     @Override

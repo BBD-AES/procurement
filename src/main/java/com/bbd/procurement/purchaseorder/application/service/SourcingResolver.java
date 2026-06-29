@@ -27,6 +27,7 @@ public class SourcingResolver {
             return Map.of();
         }
 
+        // item 서비스에 조달 방식을 물어봐야하는 sku 목록
         List<String> masterSkus = lines.stream()
                 .filter(line -> SourcingType.from(line.sourcingType()) == null)
                 .map(PurchaseRequested.Line::sku)

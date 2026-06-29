@@ -210,11 +210,13 @@ public class PurchaseOrderService implements
         return loadPurchaseOrderHistoryPort.findByPoNumber(poNumber);
     }
 
+    // 생성된 PO에 대해 Item 서비스의 실제 정보를 채워 넣어서 완전한 주문 라인으로 만듦
     private List<PurchaseOrderLine> toLines(List<PurchaseOrderLineItem> items) {
         if (items == null || items.isEmpty()) {
             return List.of();
         }
 
+        // 주문 항목들에서 sku만 뽑아서 리스트로 만듦 -> N+1 방지
         List<String> skus = items.stream()
                 .map(PurchaseOrderLineItem::sku)
                 .distinct()

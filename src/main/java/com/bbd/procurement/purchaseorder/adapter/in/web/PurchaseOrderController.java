@@ -58,7 +58,7 @@ public class PurchaseOrderController {
             description = "PO 신규 작성 | 권한: HQ_MANAGER, HQ_STAFF"
     )
     @RequireRole({UserRole.HQ_MANAGER, UserRole.HQ_STAFF})
-    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 생성 차단). docs/idempotency-spec.md
+    @Idempotent // 멱등 표준: Idempotency-Key 재요청 빠른길(중복 생성 차단).
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<PurchaseOrderResponse> register(
@@ -68,8 +68,7 @@ public class PurchaseOrderController {
         Long userId = snapshot.userId();
         PurchaseOrder po = registerPurchaseOrderUseCase.register(request.toCommand(userId));
 
-        // 스태프가 작성한 경우에만 매니저에게 알림(이슈 #79). 알림은 비핵심 read-model이므로
-        // 실패해도 이미 커밋된 PO 작성(201)을 막지 않는다(best-effort).
+        // 스태프가 작성한 경우에만 매니저에게 알림
         if (snapshot.role() == UserRole.HQ_STAFF) {
             try {
                 createPoNotificationUseCase.notifyManagerOfPoCreation(po.getPoNumber(), userId);

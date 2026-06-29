@@ -32,7 +32,7 @@ import java.util.Map;
 public class PurchaseRequestNotificationService implements HandlePurchaseRequestedUseCase, GetPurchaseRequestNotificationQuery, ClaimPurchaseRequestNotificationUseCase {
 
     /** 이 시간보다 오래된 클레임은 만료로 보고 다른 담당자가 takeover 할 수 있다. */
-    private static final Duration CLAIM_TTL = Duration.ofMinutes(30);
+    private static final Duration CLAIM_TTL = Duration.ofMinutes(10);
 
     private final ProcessedEventPort processedEventPort;
     private final SavePurchaseRequestNotificationPort savePurchaseRequestNotificationPort;
@@ -89,7 +89,7 @@ public class PurchaseRequestNotificationService implements HandlePurchaseRequest
     @Override
     @Transactional
     public PurchaseRequestNotification claim(String eventId, Long userId, String userName) {
-        PurchaseRequestNotification notification = loadPurchaseRequestNotificationPort.findByEventIdForUpdate(eventId)
+        PurchaseRequestNotification notification = loadPurchaseRequestNotificationPort.findByEventId(eventId)
                 .orElseThrow(() -> new ApiException(ErrorCode.REQUEST_NOTIFICATION_NOT_FOUND));
         LocalDateTime now = LocalDateTime.now();
         notification.claim(userId, userName, now, now.minus(CLAIM_TTL));
@@ -100,7 +100,7 @@ public class PurchaseRequestNotificationService implements HandlePurchaseRequest
     @Override
     @Transactional
     public PurchaseRequestNotification release(String eventId, Long userId) {
-        PurchaseRequestNotification notification = loadPurchaseRequestNotificationPort.findByEventIdForUpdate(eventId)
+        PurchaseRequestNotification notification = loadPurchaseRequestNotificationPort.findByEventId(eventId)
                 .orElseThrow(() -> new ApiException(ErrorCode.REQUEST_NOTIFICATION_NOT_FOUND));
         notification.releaseClaim(userId);
         savePurchaseRequestNotificationPort.save(notification);

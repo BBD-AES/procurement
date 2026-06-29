@@ -24,6 +24,14 @@ public class WorkOrder extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * 낙관적 락 버전. 동시 상태전이(start/complete) 충돌을 막는다.
+     * 두 트랜잭션이 같은 WO를 동시에 전이하면 둘째 flush가 version 불일치로 실패 → 전체 롤백.
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "work_order_number", nullable = false, unique = true, length = 20, updatable = false)
     private String workOrderNumber;
 

@@ -35,8 +35,8 @@ public class VendorService implements
     @Override
     @Transactional
     public Vendor register(RegisterVendorCommand command) {
-        // 멱등 사전 조회: 동일 requestId로 이미 등록한 공급사가 있으면 새로 만들지 않고 그대로 반환(replay).
-        // (시간차 더블클릭/재시도를 여기서 흡수한다. requestId 미전송 레거시 요청은 건너뛰고 기존대로 생성.)
+        // 멱등 사전 조회: 동일 requestId로 이미 등록한 공급사가 있으면 새로 만들지 않고 그대로 반환(replay)
+        // (시간차 더블클릭/재시도를 여기서 흡수한다. requestId 미전송 레거시 요청은 건너뛰고 기존대로 생성)
         if (StringUtils.hasText(command.requestId())) {
             Optional<Vendor> existing = loadVendorPort.findByRequestId(command.requestId());
             if (existing.isPresent()) {
@@ -50,8 +50,8 @@ public class VendorService implements
             return saveVendorPort.save(vendor);
         } catch (DataIntegrityViolationException e) {
             // 거의 동시에 들어온 요청들이 사전 조회를 모두 통과한 경우(TOCTOU):
-            // uq_vendor_request UNIQUE 제약이 두 번째 INSERT를 거부 → 중복 등록 요청(409)으로 변환.
-            // 그 외(uk_vendor_code 등)는 기존대로 공급사 코드 중복(409)으로 처리.
+            // uq_vendor_request UNIQUE 제약이 두 번째 INSERT를 거부 → 중복 등록 요청(409)으로 변환
+            // 그 외(uk_vendor_code 등)는 기존대로 공급사 코드 중복(409)으로 처리
             if (isRequestIdConflict(e)) {
                 throw new ApiException(ErrorCode.VENDOR_DUPLICATE_REQUEST);
             }
@@ -59,7 +59,7 @@ public class VendorService implements
         }
     }
 
-    // 제약 위반 원인이 멱등키(uq_vendor_request)인지 식별한다.
+    // 제약 위반 원인이 멱등키(uq_vendor_request)인지 식별
     private boolean isRequestIdConflict(DataIntegrityViolationException e) {
         for (Throwable t = e; t != null; t = t.getCause()) {
             String message = t.getMessage();

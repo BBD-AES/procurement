@@ -2,6 +2,7 @@ package com.bbd.procurement.global.error;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
@@ -46,6 +47,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             HttpStatusCode status,
             WebRequest request) {
         ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
+        ProblemDetail body = ErrorResponseFactory.create(errorCode);
+        return ResponseEntity.status(errorCode.getHttpStatus()).body(body);
+    }
+
+    /**
+     * 낙관적 락 충돌(OptimisticLockingFailureException)을 409 CONCURRENT_MODIFICATION으로 매핑한다.
+     * 같은 PO를 동시에 전이(예: complete 더블클릭)하면 둘째 트랜잭션이 커밋 시점에 실패하는데,
+     * 이 예외는 @Transactional 서비스 메서드가 반환된 뒤 커밋에서 터지므로 서비스 내부 try/catch로는
+     * 잡히지 않는다. 전역 핸들러에서 처리해야 신뢰성 있게 409로 응답된다.
+     */
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ProblemDetail> handleOptimisticLock(OptimisticLockingFailureException e) {
+        log.warn("Optimistic lock conflict", e);
+        ErrorCode errorCode = ErrorCode.CONCURRENT_MODIFICATION;
         ProblemDetail body = ErrorResponseFactory.create(errorCode);
         return ResponseEntity.status(errorCode.getHttpStatus()).body(body);
     }

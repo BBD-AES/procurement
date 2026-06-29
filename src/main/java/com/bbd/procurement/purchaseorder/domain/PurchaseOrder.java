@@ -29,6 +29,15 @@ public class PurchaseOrder extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /**
+     * 낙관적 락 버전 ->  동시 상태전이(특히 complete) 충돌 방지
+     * 두 트랜잭션이 같은 PO를 동시에 전이하면 둘째 flush가 version 불일치로 실패 →
+     * 트랜잭션 전체(상태변경 + outbox INSERT)가 롤백되어 StockInRequested가 한 번만 나감
+     */
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "po_number", nullable = false, unique = true, length = 20, updatable = false)
     private String poNumber;
 

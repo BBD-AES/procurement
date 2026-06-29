@@ -23,6 +23,11 @@ public class PurchaseRequestNotification {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    // 낙관적 락 — 두 담당자가 같은 요청을 동시에 선점(claim)하면 둘째 flush가 version 불일치로 실패.
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version;
+
     @Column(name = "event_id", nullable = false, unique = true, length = 36, updatable = false)
     private String eventId;
 
